@@ -560,51 +560,74 @@ function openAdminLogin(options = {}) {
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
-  document.getElementById("adminEmail")?.focus();
-  document.getElementById("adminLoginCancel")?.addEventListener("click", () => {
-    if (options.required) return;
-    backdrop.remove();
-  });
+  const emailInput = document.getElementById("adminEmail");
+  const cancelButton = document.getElementById("adminLoginCancel");
+
+  if (!form) {
+    console.error("Admin login form not found after modal insertion.");
+    return;
+  }
+  if (!status) {
+    console.error("Admin login status element not found.");
+  }
+  if (!emailInput) {
+    console.error("Admin login email input not found.");
+  } else {
+    emailInput.focus();
+  }
+  if (cancelButton) {
+    cancelButton.addEventListener("click", () => {
+      if (options.required) return;
+      backdrop.remove();
+    });
+  }
   
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const data = new FormData(form);
-    const email = data.get("email").trim();
-    const password = data.get("password");
-    
-    console.log("Admin login attempt with email:", email);
-    status.textContent = "Logging in...";
-    
-    // Try Supabase auth first
-    const { data: authData, error: authError, user } = await adminSignIn(email, password);
-    
-    console.log("Auth response - user:", user, "error:", authError);
-    
-    if (user) {
-      // Supabase login successful
-      console.log("Login successful for:", user.email);
-      setAdminLoggedIn();
-      status.textContent = "Login successful! Redirecting...";
-      setTimeout(() => {
-        backdrop.remove();
-        if (options.redirectToAdmin) {
-          window.location.href = "admin/add-therapist.html";
-        } else {
-          document.body.classList.remove("admin-locked");
-          options.onSuccess?.();
-        }
-      }, 500);
-      return;
-    }
-    
-    if (authError) {
-      const errorMsg = authError.message || "Invalid email or password.";
-      console.log("Login failed:", errorMsg);
-      status.textContent = errorMsg;
-      return;
-    }
+    if (!status) return;
 
-    status.textContent = "Invalid email or password.";
+    try {
+      const data = new FormData(form);
+      const email = String(data.get("email") || "").trim();
+      const password = String(data.get("password") || "");
+      
+      console.log("Admin login attempt with email/username:", email);
+      status.textContent = "Logging in...";
+      
+      // Try Supabase auth first
+      const { data: authData, error: authError, user } = await adminSignIn(email, password);
+      
+      console.log("Auth response - user:", user, "error:", authError);
+      
+      if (user) {
+        // Supabase login successful
+        console.log("Login successful for:", user.email || user.id);
+        setAdminLoggedIn();
+        status.textContent = "Login successful! Redirecting...";
+        setTimeout(() => {
+          backdrop.remove();
+          if (options.redirectToAdmin) {
+            window.location.href = "admin/add-therapist.html";
+          } else {
+            document.body.classList.remove("admin-locked");
+            options.onSuccess?.();
+          }
+        }, 500);
+        return;
+      }
+      
+      if (authError) {
+        const errorMsg = authError.message || "Invalid email or password.";
+        console.log("Login failed:", errorMsg);
+        status.textContent = errorMsg;
+        return;
+      }
+
+      status.textContent = "Invalid email or password.";
+    } catch (err) {
+      console.error("Admin login submit error:", err);
+      status.textContent = "Login error. Please try again.";
+    }
   });
 }
 
