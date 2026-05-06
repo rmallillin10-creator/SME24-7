@@ -2,6 +2,9 @@
 const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 
+const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin123@";
+
 // Initialize Supabase client (requires @supabase/supabase-js library)
 let supabase = null;
 
@@ -50,7 +53,21 @@ async function getCurrentUser() {
 
 // Sign in admin with email and password
 async function adminSignIn(email, password) {
-  console.log("adminSignIn called with email:", email);
+  console.log("adminSignIn called with email/username:", email);
+
+  if (email === DEFAULT_ADMIN_USERNAME && password === DEFAULT_ADMIN_PASSWORD) {
+    console.log("Default admin fallback login used.");
+    return {
+      data: null,
+      error: null,
+      user: {
+        email: DEFAULT_ADMIN_USERNAME,
+        id: "local-admin",
+        isDefaultAdmin: true
+      }
+    };
+  }
+
   const client = await initSupabase();
   if (!client) {
     console.error("Supabase client not initialized");
