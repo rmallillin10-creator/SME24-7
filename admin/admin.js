@@ -86,7 +86,16 @@ businessProfileForm?.addEventListener("submit", async (event) => {
   };
 
   localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
-  businessProfileStatus.textContent = "Business profile saved.";
+  cachedSettings = nextSettings;
+  
+  // Also save to Supabase
+  const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
+  if (supabaseResult.error) {
+    businessProfileStatus.textContent = "Business profile saved locally (Supabase sync failed).";
+  } else {
+    businessProfileStatus.textContent = "Business profile saved.";
+  }
+  
   applyBusinessProfile();
   renderOfficialNumber();
 });
@@ -154,13 +163,25 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   };
   const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
   localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, draft]));
-  therapistDraftStatus.textContent = "Therapist draft saved locally for Supabase migration.";
+  
+  // Also save to Supabase
+  const supabaseResult = await saveTherapistDraftToSupabase(draft);
+  if (supabaseResult.error) {
+    therapistDraftStatus.textContent = "Therapist draft saved locally (Supabase sync failed).";
+  } else {
+    therapistDraftStatus.textContent = "Therapist draft saved locally for Supabase migration.";
+  }
+  
   therapistDraftForm.reset();
   renderTherapistImagePreview();
 });
 
-requireAdminAccess(() => {
+requireAdminAccess(async () => {
+  // Initialize Supabase
+  await initSupabase();
+  
   setupAdminTabs();
+  await loadSiteSettingsFromSupabase();
   loadBusinessProfileForm();
   loadTaxiFareForm();
   renderTherapistImagePreview();

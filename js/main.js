@@ -39,18 +39,59 @@ function usd(value) {
   }).format(value);
 }
 
+let cachedSettings = null;
+
 function getSiteSettings() {
+  // Return cached settings immediately
+  if (cachedSettings) return cachedSettings;
+  
+  // Try localStorage first
   try {
     const saved = JSON.parse(localStorage.getItem("eliteSiteSettings") || "{}");
-    return {
+    cachedSettings = {
       ...DEFAULT_SITE_SETTINGS,
       ...saved,
       business: { ...DEFAULT_SITE_SETTINGS.business, ...(saved.business || {}) },
       contacts: { ...DEFAULT_SITE_SETTINGS.contacts, ...(saved.contacts || {}) }
     };
+    return cachedSettings;
   } catch {
+    cachedSettings = DEFAULT_SITE_SETTINGS;
     return DEFAULT_SITE_SETTINGS;
   }
+}
+
+// Async function to fetch settings from Supabase
+async function loadSiteSettingsFromSupabase() {
+  const supabaseSettings = await fetchSiteSettingsFromSupabase();
+  if (supabaseSettings) {
+    cachedSettings = {
+      ...DEFAULT_SITE_SETTINGS,
+      business: {
+        name: supabaseSettings.business_name || DEFAULT_SITE_SETTINGS.business.name,
+        address: supabaseSettings.business_address || DEFAULT_SITE_SETTINGS.business.address,
+        mapsLink: supabaseSettings.business_maps_link || DEFAULT_SITE_SETTINGS.business.mapsLink,
+        logo: supabaseSettings.business_logo || ""
+      },
+      taxiFare: supabaseSettings.taxi_fare || 0,
+      taxiFareCurrency: supabaseSettings.taxi_fare_currency || "PHP",
+      taxiFareNotes: supabaseSettings.taxi_fare_notes || "",
+      services: [
+        { name: "Whole Body Massage", price: supabaseSettings.service_1_price || 0 },
+        { name: "Sensual Massage", price: supabaseSettings.service_2_price || 0 }
+      ],
+      contacts: {
+        viber: supabaseSettings.viber || "",
+        wechat: supabaseSettings.wechat || "",
+        kakaotalk: supabaseSettings.kakaotalk || "",
+        telegram: supabaseSettings.telegram || "",
+        whatsapp: supabaseSettings.whatsapp || ""
+      }
+    };
+    localStorage.setItem("eliteSiteSettings", JSON.stringify(cachedSettings));
+    return cachedSettings;
+  }
+  return getSiteSettings();
 }
 
 function applyBusinessProfile() {
@@ -479,8 +520,8 @@ function openAdminLogin(options = {}) {
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
       <div class="field">
-        <label for="adminUsername">Username</label>
-        <input id="adminUsername" name="username" autocomplete="username" required>
+        <label for="adminEmail">Email</label>
+        <input id="adminEmail" name="email" type="email" autocomplete="email" required>
       </div>
       <div class="field">
         <label for="adminPassword">Password</label>
@@ -497,15 +538,25 @@ function openAdminLogin(options = {}) {
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
-  document.getElementById("adminUsername")?.focus();
+  document.getElementById("adminEmail")?.focus();
   document.getElementById("adminLoginCancel")?.addEventListener("click", () => {
     if (options.required) return;
     backdrop.remove();
   });
-  form.addEventListener("submit", (event) => {
+  
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(form);
-    if (data.get("username") === ADMIN_USERNAME && data.get("password") === ADMIN_PASSWORD) {
+    const email = data.get("email").trim();
+    const password = data.get("password");
+    
+    status.textContent = "Logging in...";
+    
+    // Try Supabase auth first
+    const { data: authData, error: authError } = await adminSignIn(email, password);
+    
+    if (authData?.user) {
+      // Supabase login successful
       setAdminLoggedIn();
       backdrop.remove();
       if (options.redirectToAdmin) {
@@ -516,7 +567,21 @@ function openAdminLogin(options = {}) {
       }
       return;
     }
-    status.textContent = "Invalid username or password.";
+    
+    // Fallback to hardcoded credentials (for development/testing)
+    if (email === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      setAdminLoggedIn();
+      backdrop.remove();
+      if (options.redirectToAdmin) {
+        window.location.href = "admin/add-therapist.html";
+      } else {
+        document.body.classList.remove("admin-locked");
+        options.onSuccess?.();
+      }
+      return;
+    }
+    
+    status.textContent = authError?.message || "Invalid email or password.";
   });
 }
 
@@ -551,7 +616,11 @@ function setupAdminShortcut() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Initialize Supabase and load settings
+  await initSupabase();
+  await loadSiteSettingsFromSupabase();
+  
   applyBusinessProfile();
   renderOfficialNumber();
   setupAdminShortcut();
