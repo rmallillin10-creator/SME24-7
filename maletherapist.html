@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Male Therapists | Sensual Massage Elite SME</title>
+  <meta name="description" content="Browse male massage therapists available for Metro Manila bookings.">
+  <link rel="icon" type="image/svg+xml" href="logo/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="logo/elite%20logo.png">
+  <link rel="apple-touch-icon" href="logo/elite%20logo.png">
+  <meta property="og:title" content="Male Therapists | Sensual Massage Elite SME">
+  <meta property="og:image" content="logo/elite%20logo.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="logo/elite%20logo.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a class="brand" href="index.html"><img class="brand-logo" src="logo/elite%20logo.png" alt="Sensual Massage Elite SME logo"><span class="brand-copy"><span data-business-name>Sensual Massage Elite SME<br>24/7 Hotel and Condo Service Male and Female Therapist</span><small data-official-number>Official number: Add in Admin</small><span class="brand-apps"><img src="logo/wechat.png" alt="WeChat"><img src="logo/telegram.png" alt="Telegram"><img src="logo/kakaotalk.png" alt="KakaoTalk"><img src="logo/viber.png" alt="Viber"><img src="logo/whatsapp.png" alt="WhatsApp"></span></span></a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="femaletherapist.html">Female Therapists</a>
+        <a class="active" href="maletherapist.html">Male Therapists</a>
+        <a href="booking.html">Booking</a>
+        <a href="contact.html">Contact</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="section">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Male therapist directory</span>
+        <h1>Male Therapists</h1>
+        <p class="lead">Find sports, deep tissue, recovery, and relaxation appointments across Manila.</p>
+      </div>
+    </div>
+    <div class="filters">
+      <input class="filter-input" id="search" type="search" placeholder="Search therapists">
+      <select id="specialty">
+        <option value="">All specialties</option>
+        <option>Sports</option>
+        <option>Deep Tissue</option>
+        <option>Swedish</option>
+        <option>Reflexology</option>
+        <option>Stretching</option>
+      </select>
+    </div>
+    <div class="grid" id="maleTherapists"></div>
+  </main>
+
+  <footer class="site-footer"><div class="footer-inner"><span>Sensual Massage Elite SME</span><span>Male therapist appointments</span></div></footer>
+  <script src="js/therapists.js"></script>
+  <script src="js/main.js"></script>
+  <script>setupDirectory("maleTherapists", "male");</script>
+</body>
+</html>
