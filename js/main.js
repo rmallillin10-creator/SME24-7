@@ -586,30 +586,12 @@ function requireAdminAccess(onSuccess) {
 }
 
 function setupAdminShortcut() {
-  let firstKeyTime = 0;
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     const isTextInput = ["input", "textarea"].includes(event.target.tagName.toLowerCase()) || event.target.isContentEditable;
     if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && key === "a") {
-      event.preventDefault();
-      if (window.location.pathname.toLowerCase().includes("/admin/")) {
-        requireAdminAccess();
-      } else {
-        openAdminLogin({ redirectToAdmin: true });
-      }
-      return;
-    }
-    if (!event.ctrlKey || event.altKey || event.metaKey) return;
-    if (key === "z") {
-      if (isTextInput) return;
-      firstKeyTime = Date.now();
-      event.preventDefault();
-      return;
-    }
-    if (key === "x" && Date.now() - firstKeyTime < 1200) {
       if (isTextInput) return;
       event.preventDefault();
-      firstKeyTime = 0;
       if (window.location.pathname.toLowerCase().includes("/admin/")) {
         requireAdminAccess();
       } else {
