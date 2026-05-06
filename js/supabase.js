@@ -6,7 +6,18 @@ const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 let supabase = null;
 
 async function initSupabase() {
-  if (typeof window.supabase === "undefined") {
+  const waitForSupabase = async () => {
+    for (let i = 0; i < 20; i += 1) {
+      if (typeof window.supabase !== "undefined") {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return false;
+  };
+
+  const loaded = await waitForSupabase();
+  if (!loaded) {
     console.error("Supabase library not loaded");
     return null;
   }
@@ -36,7 +47,8 @@ async function adminSignIn(email, password) {
     email,
     password
   });
-  return { data, error };
+  const user = data?.user || data?.session?.user || null;
+  return { data, error, user };
 }
 
 // Sign out admin

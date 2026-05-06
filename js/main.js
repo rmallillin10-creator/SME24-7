@@ -551,9 +551,9 @@ function openAdminLogin(options = {}) {
     status.textContent = "Logging in...";
     
     // Try Supabase auth first
-    const { data: authData, error: authError } = await adminSignIn(email, password);
+    const { data: authData, error: authError, user } = await adminSignIn(email, password);
     
-    if (authData?.user) {
+    if (user) {
       // Supabase login successful
       setAdminLoggedIn();
       backdrop.remove();
