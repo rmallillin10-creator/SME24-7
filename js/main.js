@@ -8,8 +8,6 @@ function peso(value) {
 
 const GOOGLE_SHEETS_WEB_APP_URL = "";
 const PHP_PER_USD = 57.5;
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
 const DEFAULT_SITE_SETTINGS = {
   business: {
     name: "Sensual Massage Elite SME 24/7 Hotel and Condo Service Male and Female Therapist",
@@ -568,20 +566,12 @@ function openAdminLogin(options = {}) {
       return;
     }
     
-    // Fallback to hardcoded credentials (for development/testing)
-    if (email === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      setAdminLoggedIn();
-      backdrop.remove();
-      if (options.redirectToAdmin) {
-        window.location.href = "admin/add-therapist.html";
-      } else {
-        document.body.classList.remove("admin-locked");
-        options.onSuccess?.();
-      }
+    if (authError) {
+      status.textContent = authError.message || "Invalid email or password.";
       return;
     }
-    
-    status.textContent = authError?.message || "Invalid email or password.";
+
+    status.textContent = "Invalid email or password.";
   });
 }
 
