@@ -549,26 +549,35 @@ function openAdminLogin(options = {}) {
     const email = data.get("email").trim();
     const password = data.get("password");
     
+    console.log("Admin login attempt with email:", email);
     status.textContent = "Logging in...";
     
     // Try Supabase auth first
     const { data: authData, error: authError, user } = await adminSignIn(email, password);
     
+    console.log("Auth response - user:", user, "error:", authError);
+    
     if (user) {
       // Supabase login successful
+      console.log("Login successful for:", user.email);
       setAdminLoggedIn();
-      backdrop.remove();
-      if (options.redirectToAdmin) {
-        window.location.href = "admin/add-therapist.html";
-      } else {
-        document.body.classList.remove("admin-locked");
-        options.onSuccess?.();
-      }
+      status.textContent = "Login successful! Redirecting...";
+      setTimeout(() => {
+        backdrop.remove();
+        if (options.redirectToAdmin) {
+          window.location.href = "admin/add-therapist.html";
+        } else {
+          document.body.classList.remove("admin-locked");
+          options.onSuccess?.();
+        }
+      }, 500);
       return;
     }
     
     if (authError) {
-      status.textContent = authError.message || "Invalid email or password.";
+      const errorMsg = authError.message || "Invalid email or password.";
+      console.log("Login failed:", errorMsg);
+      status.textContent = errorMsg;
       return;
     }
 
@@ -586,12 +595,26 @@ function requireAdminAccess(onSuccess) {
 }
 
 function setupAdminShortcut() {
+  console.log("Admin shortcut setup initialized. Use Ctrl+Alt+Z to login.");
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
-    const isTextInput = ["input", "textarea"].includes(event.target.tagName.toLowerCase()) || event.target.isContentEditable;
+    const tagName = event.target.tagName.toLowerCase();
+    const isTextInput = ["input", "textarea"].includes(tagName) || event.target.isContentEditable;
+    
+    // Debug: log all Ctrl+Alt combinations
+    if (event.ctrlKey && event.altKey) {
+      console.log("Ctrl+Alt pressed with key:", key);
+    }
+    
+    // Check for Ctrl+Alt+Z
     if (event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && key === "z") {
-      if (isTextInput) return;
+      console.log("Admin shortcut triggered! isTextInput=", isTextInput);
+      if (isTextInput) {
+        console.log("Text input detected, ignoring shortcut.");
+        return;
+      }
       event.preventDefault();
+      console.log("Opening admin login...");
       if (window.location.pathname.toLowerCase().includes("/admin/")) {
         requireAdminAccess();
       } else {
@@ -602,11 +625,19 @@ function setupAdminShortcut() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  console.log("DOMContentLoaded event fired. Starting app initialization...");
+  
   // Initialize Supabase and load settings
   await initSupabase();
+  console.log("Supabase initialized, loading settings...");
+  
   await loadSiteSettingsFromSupabase();
+  console.log("Site settings loaded.");
   
   applyBusinessProfile();
   renderOfficialNumber();
+  console.log("Setting up admin shortcut (Ctrl+Alt+Z)...");
   setupAdminShortcut();
+  
+  console.log("App initialization complete!");
 });

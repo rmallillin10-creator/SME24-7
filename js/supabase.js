@@ -6,25 +6,35 @@ const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 let supabase = null;
 
 async function initSupabase() {
+  console.log("initSupabase called. Checking for Supabase library...");
+  
   const waitForSupabase = async () => {
     for (let i = 0; i < 20; i += 1) {
       if (typeof window.supabase !== "undefined") {
+        console.log("Supabase library loaded after", i * 100, "ms");
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    console.error("Supabase library not available after 2000ms");
     return false;
   };
 
   const loaded = await waitForSupabase();
   if (!loaded) {
-    console.error("Supabase library not loaded");
+    console.error("Supabase library not loaded. Check CDN.");
     return null;
   }
   
   if (!supabase) {
-    const { createClient } = window.supabase;
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try {
+      const { createClient } = window.supabase;
+      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log("Supabase client initialized successfully");
+    } catch (err) {
+      console.error("Error initializing Supabase client:", err);
+      return null;
+    }
   }
   return supabase;
 }
@@ -40,15 +50,25 @@ async function getCurrentUser() {
 
 // Sign in admin with email and password
 async function adminSignIn(email, password) {
+  console.log("adminSignIn called with email:", email);
   const client = await initSupabase();
-  if (!client) return { error: "Supabase not initialized" };
+  if (!client) {
+    console.error("Supabase client not initialized");
+    return { error: "Supabase not initialized" };
+  }
   
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password
-  });
-  const user = data?.user || data?.session?.user || null;
-  return { data, error, user };
+  try {
+    const { data, error } = await client.auth.signInWithPassword({
+      email,
+      password
+    });
+    const user = data?.user || data?.session?.user || null;
+    console.log("adminSignIn result - user:", user, "error:", error);
+    return { data, error, user };
+  } catch (err) {
+    console.error("adminSignIn exception:", err);
+    return { error: err, user: null };
+  }
 }
 
 // Sign out admin
