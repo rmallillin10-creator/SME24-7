@@ -607,6 +607,12 @@ textarea {
   font-size: 28px;
 }
 
+.admin-login-modal .admin-login-help {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
 .admin-login-modal .field {
   margin-bottom: 14px;
 }

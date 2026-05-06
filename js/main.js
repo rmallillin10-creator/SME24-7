@@ -517,6 +517,7 @@ function openAdminLogin(options = {}) {
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
+      <p class="admin-login-help">Enter your Supabase admin email and password. If you received an invite, confirm your account from the invite email before logging in.</p>
       <div class="field">
         <label for="adminEmail">Email</label>
         <input id="adminEmail" name="email" type="email" autocomplete="email" required>
@@ -529,7 +530,7 @@ function openAdminLogin(options = {}) {
         <button type="submit">Login</button>
         <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
       </div>
-      <p class="status" id="adminLoginStatus"></p>
+      <p class="status" id="adminLoginStatus">Use your Supabase admin email/password.</p>
     </form>
   `;
   document.body.appendChild(backdrop);
@@ -588,13 +589,25 @@ function setupAdminShortcut() {
   let firstKeyTime = 0;
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
+    const isTextInput = ["input", "textarea"].includes(event.target.tagName.toLowerCase()) || event.target.isContentEditable;
+    if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && key === "a") {
+      event.preventDefault();
+      if (window.location.pathname.toLowerCase().includes("/admin/")) {
+        requireAdminAccess();
+      } else {
+        openAdminLogin({ redirectToAdmin: true });
+      }
+      return;
+    }
     if (!event.ctrlKey || event.altKey || event.metaKey) return;
     if (key === "z") {
+      if (isTextInput) return;
       firstKeyTime = Date.now();
       event.preventDefault();
       return;
     }
     if (key === "x" && Date.now() - firstKeyTime < 1200) {
+      if (isTextInput) return;
       event.preventDefault();
       firstKeyTime = 0;
       if (window.location.pathname.toLowerCase().includes("/admin/")) {
