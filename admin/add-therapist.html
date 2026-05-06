@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Therapist | Sensual Massage Elite SME</title>
+  <link rel="icon" type="image/svg+xml" href="../logo/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="../logo/elite%20logo.png">
+  <link rel="apple-touch-icon" href="../logo/elite%20logo.png">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="admin-page admin-locked">
+  <header class="site-header">
+    <nav class="nav">
+      <a class="brand" href="../index.html"><img class="brand-logo" src="../logo/elite%20logo.png" alt="Sensual Massage Elite SME logo"><span class="brand-copy"><span data-business-name>Sensual Massage Elite SME<br>24/7 Hotel and Condo Service Male and Female Therapist</span><small data-official-number>Official number: Add in Admin</small><span class="brand-apps"><img src="../logo/wechat.png" alt="WeChat"><img src="../logo/telegram.png" alt="Telegram"><img src="../logo/kakaotalk.png" alt="KakaoTalk"><img src="../logo/viber.png" alt="Viber"><img src="../logo/whatsapp.png" alt="WhatsApp"></span></span></a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="../femaletherapist.html">Female Therapists</a>
+        <a href="../maletherapist.html">Male Therapists</a>
+        <a href="../booking.html">Booking</a>
+        <a href="../contact.html">Contact</a>
+        <a class="active" href="add-therapist.html">Admin</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="section">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Admin panel</span>
+        <h1>Admin Settings</h1>
+        <p class="lead">Manage business profile settings before connecting Supabase as the database.</p>
+      </div>
+    </div>
+
+    <div class="admin-tabs" role="tablist">
+      <button class="admin-tab active" type="button" data-tab-button="businessProfile">Business Profile</button>
+      <button class="admin-tab" type="button" data-tab-button="taxiFarePanel">Taxi Fare</button>
+      <button class="admin-tab" type="button" data-tab-button="therapistPanel">Therapist</button>
+    </div>
+
+    <section class="admin-tab-panel active" id="businessProfile" data-tab-panel>
+      <form class="form-panel" id="businessProfileForm">
+        <h2>Business Profile</h2>
+        <div class="form-grid">
+          <div class="field full"><label for="businessName">Name</label><input id="businessName" name="businessName" required></div>
+          <div class="field full"><label for="businessAddress">Address</label><input id="businessAddress" name="businessAddress" required></div>
+          <div class="field full"><label for="businessMapsLink">Maps Link</label><input id="businessMapsLink" name="businessMapsLink" placeholder="https://www.google.com/maps/place/..."></div>
+          <div class="field"><label for="wholeBodyPrice">Whole Body Massage Price</label><input id="wholeBodyPrice" name="wholeBodyPrice" type="number" min="0" step="100" placeholder="PHP"></div>
+          <div class="field"><label for="sensualPrice">Sensual Massage Price</label><input id="sensualPrice" name="sensualPrice" type="number" min="0" step="100" placeholder="PHP"></div>
+          <div class="field"><label for="viber">Viber Number</label><input id="viber" name="viber"></div>
+          <div class="field"><label for="wechat">WeChat Number</label><input id="wechat" name="wechat"></div>
+          <div class="field"><label for="kakaotalk">KakaoTalk Number</label><input id="kakaotalk" name="kakaotalk"></div>
+          <div class="field"><label for="telegram">Telegram Number</label><input id="telegram" name="telegram"></div>
+          <div class="field"><label for="whatsapp">WhatsApp Number</label><input id="whatsapp" name="whatsapp"></div>
+          <div class="field full"><label for="businessLogo">Logo</label><input id="businessLogo" name="businessLogo" type="file" accept="image/*"></div>
+          <div class="field full">
+            <label>Logo Preview</label>
+            <img class="business-logo-preview" id="businessLogoPreview" src="../logo/elite%20logo.png" alt="Business logo preview">
+            <p class="notice">Changing this logo updates the website header logo and browser favicon on this browser. Supabase storage can replace this later.</p>
+          </div>
+        </div>
+        <div class="actions"><button type="submit">Save Business Profile</button><span id="businessProfileStatus" class="status"></span></div>
+      </form>
+    </section>
+
+    <section class="admin-tab-panel" id="taxiFarePanel" data-tab-panel>
+      <form class="form-panel" id="taxiFareForm">
+        <h2>Taxi Fare</h2>
+        <div class="form-grid">
+          <div class="field"><label for="taxiFare">Default Taxi Fare</label><input id="taxiFare" name="taxiFare" type="number" min="0" step="1"></div>
+          <div class="field"><label for="taxiFareCurrency">Currency</label><select id="taxiFareCurrency" name="taxiFareCurrency"><option value="PHP">PHP</option><option value="USD">USD</option></select></div>
+          <div class="field full"><label for="taxiFareNotes">Notes</label><textarea id="taxiFareNotes" name="taxiFareNotes" placeholder="Coverage areas, late-night surcharge, hotel parking reminders"></textarea></div>
+        </div>
+        <div class="actions"><button type="submit">Save Taxi Fare</button><span id="taxiFareStatus" class="status"></span></div>
+      </form>
+    </section>
+
+    <section class="admin-tab-panel" id="therapistPanel" data-tab-panel>
+      <form class="form-panel" id="therapistDraftForm">
+        <h2>Therapist</h2>
+        <div class="form-grid">
+          <div class="field"><label for="therapistName">Name</label><input id="therapistName" name="therapistName" required></div>
+          <div class="field"><label for="therapistGender">Male or Female</label><select id="therapistGender" name="therapistGender" required><option value="female">Female</option><option value="male">Male</option></select></div>
+          <div class="field"><label for="therapistAge">Age</label><input id="therapistAge" name="therapistAge" type="number" min="21" required></div>
+          <div class="field"><label for="therapistVitalStatistics">Vital Statistics</label><input id="therapistVitalStatistics" name="therapistVitalStatistics" placeholder="Example: 34-26-36"></div>
+          <div class="field full"><label for="therapistAddress">Address</label><input id="therapistAddress" name="therapistAddress" required></div>
+          <div class="field full"><label for="therapistProfilePicture">Profile Picture</label><input id="therapistProfilePicture" name="therapistProfilePicture" type="file" accept="image/*"></div>
+          <div class="field full"><label for="therapistSlides">10 Slides of Picture</label><input id="therapistSlides" name="therapistSlides" type="file" accept="image/*" multiple></div>
+          <div class="field full">
+            <label>Image Preview</label>
+            <div class="image-preview-grid" id="therapistImagePreview"></div>
+            <p class="notice">Select up to 10 slide images. These are saved locally as a draft for now and can later be uploaded to Supabase Storage.</p>
+          </div>
+        </div>
+        <div class="actions"><button type="submit">Save Therapist Draft</button><span id="therapistDraftStatus" class="status"></span></div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="footer-inner"><span>Sensual Massage Elite SME</span><span>Admin tools</span></div></footer>
+  <script src="../js/therapists.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

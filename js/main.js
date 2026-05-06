@@ -1,0 +1,558 @@
+function peso(value) {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0
+  }).format(value);
+}
+
+const GOOGLE_SHEETS_WEB_APP_URL = "";
+const PHP_PER_USD = 57.5;
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "admin123";
+const DEFAULT_SITE_SETTINGS = {
+  business: {
+    name: "Sensual Massage Elite SME 24/7 Hotel and Condo Service Male and Female Therapist",
+    address: "Metro Manila, Philippines",
+    mapsLink: "https://www.google.com/maps/search/?api=1&query=Metro%20Manila%2C%20Philippines",
+    logo: ""
+  },
+  taxiFare: 0,
+  services: [
+    { name: "Whole Body Massage", price: 0 },
+    { name: "Sensual Massage", price: 0 }
+  ],
+  contacts: {
+    viber: "",
+    wechat: "",
+    kakaotalk: "",
+    telegram: "",
+    whatsapp: ""
+  }
+};
+
+function usd(value) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+function getSiteSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("eliteSiteSettings") || "{}");
+    return {
+      ...DEFAULT_SITE_SETTINGS,
+      ...saved,
+      business: { ...DEFAULT_SITE_SETTINGS.business, ...(saved.business || {}) },
+      contacts: { ...DEFAULT_SITE_SETTINGS.contacts, ...(saved.contacts || {}) }
+    };
+  } catch {
+    return DEFAULT_SITE_SETTINGS;
+  }
+}
+
+function applyBusinessProfile() {
+  const settings = getSiteSettings();
+  const business = settings.business || DEFAULT_SITE_SETTINGS.business;
+  const logo = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/elite%20logo.png" : "logo/elite%20logo.png");
+  const favicon = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/favicon.svg" : "logo/favicon.svg");
+
+  document.querySelectorAll("[data-business-name]").forEach((target) => {
+    target.textContent = business.name;
+  });
+  document.querySelectorAll("[data-business-address]").forEach((target) => {
+    target.textContent = business.address;
+  });
+  document.querySelectorAll("[data-business-map]").forEach((target) => {
+    target.href = business.mapsLink || "#";
+  });
+  document.querySelectorAll(".brand-logo, [data-business-logo]").forEach((target) => {
+    target.src = logo;
+  });
+  document.querySelectorAll("link[rel='icon'], link[rel='alternate icon'], link[rel='apple-touch-icon']").forEach((target) => {
+    target.href = favicon;
+  });
+  document.title = document.title.replace("Sensual Massage Elite SME", "Sensual Massage Elite SME");
+}
+
+function getTherapistPrice(therapist, count) {
+  if (!therapist || count <= 0) return 0;
+  return Number(therapist.pricing?.[count] || therapist.rate * count || 0);
+}
+
+function formatAvailability(availability) {
+  const value = String(availability || "").trim();
+  if (!value) return "";
+  if (/\b(today|daily|weekdays|24 hours)\b/i.test(value)) {
+    return `<span class="availability-tag">24 hours</span>`;
+  }
+  return value;
+}
+
+function therapistCard(therapist) {
+  const specialties = therapist.specialties.map((item) => `<span class="pill">${item}</span>`).join("");
+  return `
+    <article class="therapist-card">
+      <button class="therapist-photo-button" type="button" data-gallery-id="${therapist.id}" aria-label="View ${therapist.name} photos">
+        <img class="therapist-photo" src="${therapist.image}" alt="${therapist.name}">
+      </button>
+      <div class="card-body">
+        <h3>${therapist.name}</h3>
+        <p>${therapist.bio}</p>
+        <div class="meta">${specialties}</div>
+        <p><strong>${therapist.location}</strong><br><span class="price">${peso(therapist.rate)}</span> starting rate</p>
+        <p class="notice">${formatAvailability(therapist.availability)}</p>
+        ${therapist.mapUrl ? `<p><a class="map-link" href="${therapist.mapUrl}" target="_blank" rel="noopener">View Map / Location</a></p>` : ""}
+        <a class="button" href="booking.html?therapist=${encodeURIComponent(therapist.id)}">Book Now</a>
+      </div>
+    </article>
+  `;
+}
+
+function renderTherapists(targetId, options = {}) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  const all = getAllTherapists();
+  const filtered = all.filter((therapist) => {
+    if (options.gender && therapist.gender !== options.gender) return false;
+    if (options.featured && !therapist.featured) return false;
+    return true;
+  });
+
+  target.innerHTML = filtered.map(therapistCard).join("");
+  attachTherapistGallery(target);
+}
+
+function setupDirectory(targetId, gender) {
+  const target = document.getElementById(targetId);
+  const search = document.getElementById("search");
+  const specialty = document.getElementById("specialty");
+  if (!target) return;
+
+  const draw = () => {
+    const query = (search?.value || "").toLowerCase();
+    const specialtyValue = specialty?.value || "";
+    const therapists = getAllTherapists().filter((therapist) => {
+      const matchesGender = therapist.gender === gender;
+      const matchesText = [therapist.name, therapist.location, therapist.bio].join(" ").toLowerCase().includes(query);
+      const matchesSpecialty = !specialtyValue || therapist.specialties.includes(specialtyValue);
+      return matchesGender && matchesText && matchesSpecialty;
+    });
+    target.innerHTML = therapists.map(therapistCard).join("") || `<p class="notice">No therapists match that filter yet.</p>`;
+    attachTherapistGallery(target);
+  };
+
+  search?.addEventListener("input", draw);
+  specialty?.addEventListener("change", draw);
+  draw();
+}
+
+function getTherapistImages(therapist) {
+  return [therapist.image, ...(therapist.slides || [])].filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
+}
+
+function closeTherapistGallery() {
+  document.getElementById("therapistGalleryModal")?.remove();
+}
+
+function openTherapistGallery(therapist) {
+  const images = getTherapistImages(therapist);
+  if (!images.length) return;
+  closeTherapistGallery();
+  const modal = document.createElement("div");
+  modal.className = "gallery-modal";
+  modal.id = "therapistGalleryModal";
+  modal.innerHTML = `
+    <div class="gallery-dialog" role="dialog" aria-modal="true" aria-label="${therapist.name} photo gallery">
+      <button class="gallery-close" type="button" aria-label="Close gallery">×</button>
+      <div class="gallery-main">
+        <img id="galleryMainImage" src="${images[0]}" alt="${therapist.name}">
+      </div>
+      <div class="gallery-info">
+        <h2>${therapist.name}</h2>
+        <p>${therapist.location}</p>
+      </div>
+      <div class="gallery-thumbs">
+        ${images.map((image, index) => `<button class="gallery-thumb ${index === 0 ? "active" : ""}" type="button" data-image="${image}"><img src="${image}" alt="${therapist.name} photo ${index + 1}"></button>`).join("")}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector(".gallery-close").addEventListener("click", closeTherapistGallery);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeTherapistGallery();
+  });
+  modal.querySelectorAll(".gallery-thumb").forEach((button) => {
+    button.addEventListener("click", () => {
+      modal.querySelector("#galleryMainImage").src = button.dataset.image;
+      modal.querySelectorAll(".gallery-thumb").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+    });
+  });
+}
+
+function attachTherapistGallery(scope = document) {
+  scope.querySelectorAll("[data-gallery-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const therapist = getTherapistById(button.dataset.galleryId);
+      if (therapist) openTherapistGallery(therapist);
+    });
+  });
+}
+
+function populateBookingSelect() {
+  const femaleSelect = document.getElementById("preferredFemaleTherapist");
+  const maleSelect = document.getElementById("preferredMaleTherapist");
+  const serviceSelect = document.getElementById("preferredService");
+  if (!femaleSelect || !maleSelect) return;
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get("therapist");
+  const therapists = getAllTherapists();
+  const settings = getSiteSettings();
+  const option = (therapist) => `<option value="${therapist.id}">${therapist.name} - ${peso(therapist.rate)}</option>`;
+
+  if (serviceSelect) {
+    serviceSelect.innerHTML = `<option value="">Choose service</option>` + settings.services
+      .map((service) => `<option value="${service.name}" data-price="${Number(service.price || 0)}">${service.name}${Number(service.price || 0) ? ` - ${peso(Number(service.price))}` : ""}</option>`)
+      .join("");
+  }
+
+  femaleSelect.innerHTML = `<option value="">Choose female therapist</option>` + therapists
+    .filter((therapist) => therapist.gender === "female")
+    .map(option)
+    .join("");
+  maleSelect.innerHTML = `<option value="">Choose male therapist</option>` + therapists
+    .filter((therapist) => therapist.gender === "male")
+    .map(option)
+    .join("");
+
+  const selectedTherapist = therapists.find((therapist) => therapist.id === requested);
+  if (selectedTherapist?.gender === "female") {
+    femaleSelect.value = requested;
+    document.getElementById("femaleTherapistCount").value = "1";
+  }
+  if (selectedTherapist?.gender === "male") {
+    maleSelect.value = requested;
+    document.getElementById("maleTherapistCount").value = "1";
+  }
+}
+
+function getTherapistById(id) {
+  return getAllTherapists().find((therapist) => therapist.id === id);
+}
+
+function getBookingEstimate() {
+  const settings = getSiteSettings();
+  const femaleCount = Number(document.getElementById("femaleTherapistCount")?.value || 0);
+  const maleCount = Number(document.getElementById("maleTherapistCount")?.value || 0);
+  const femaleTherapist = getTherapistById(document.getElementById("preferredFemaleTherapist")?.value);
+  const maleTherapist = getTherapistById(document.getElementById("preferredMaleTherapist")?.value);
+  const serviceSelect = document.getElementById("preferredService");
+  const selectedService = serviceSelect?.selectedOptions?.[0];
+  const serviceBasePhp = Number(selectedService?.dataset?.price || 0);
+  const taxiFarePhp = Number(document.getElementById("taxiFare")?.value || settings.taxiFare || 0);
+  const femaleServicePhp = getTherapistPrice(femaleTherapist, femaleCount);
+  const maleServicePhp = getTherapistPrice(maleTherapist, maleCount);
+  const servicePhp = serviceBasePhp + femaleServicePhp + maleServicePhp;
+  const totalPhp = servicePhp + taxiFarePhp;
+  const serviceUsd = servicePhp / PHP_PER_USD;
+  const taxiUsd = taxiFarePhp / PHP_PER_USD;
+  const totalUsd = totalPhp / PHP_PER_USD;
+
+  return {
+    servicePhp,
+    taxiFarePhp,
+    totalPhp,
+    serviceUsd,
+    taxiUsd,
+    totalUsd,
+    estimatedServiceCost: `${usd(serviceUsd)} (${peso(servicePhp)})`,
+    totalEstimate: `${usd(totalUsd)} / ${peso(totalPhp)}`
+  };
+}
+
+function updateBookingEstimate() {
+  const estimate = getBookingEstimate();
+  const serviceCost = document.getElementById("estimatedServiceCost");
+  const totalEstimate = document.getElementById("totalEstimate");
+  if (serviceCost) serviceCost.value = estimate.estimatedServiceCost;
+  if (totalEstimate) totalEstimate.value = estimate.totalEstimate;
+}
+
+function getSelectedTherapistName(id) {
+  const therapist = getTherapistById(id);
+  return therapist ? therapist.name : "";
+}
+
+function setupBookingForm() {
+  const form = document.getElementById("bookingForm");
+  const status = document.getElementById("status");
+  if (!form || !status) return;
+
+  populateBookingSelect();
+  const settings = getSiteSettings();
+  const taxiFare = document.getElementById("taxiFare");
+  if (taxiFare && Number(taxiFare.value) === 0) taxiFare.value = settings.taxiFare || 0;
+
+  ["preferredService", "femaleTherapistCount", "maleTherapistCount", "preferredFemaleTherapist", "preferredMaleTherapist", "taxiFare"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", updateBookingEstimate);
+    document.getElementById(id)?.addEventListener("change", updateBookingEstimate);
+  });
+  updateBookingEstimate();
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    updateBookingEstimate();
+
+    if (!GOOGLE_SHEETS_WEB_APP_URL) {
+      status.textContent = "Add your Google Apps Script web app URL in js/main.js first.";
+      return;
+    }
+
+    const estimate = getBookingEstimate();
+    const data = new FormData(form);
+    const payload = {
+      timestamp: new Date().toISOString(),
+      fullname: data.get("fullname"),
+      mobileNumber: data.get("mobileNumber"),
+      preferredService: data.get("preferredService"),
+      femaleTherapistCount: data.get("femaleTherapistCount"),
+      maleTherapistCount: data.get("maleTherapistCount"),
+      preferredDate: data.get("preferredDate"),
+      preferredTime: data.get("preferredTime"),
+      preferredFemaleTherapists: getSelectedTherapistName(data.get("preferredFemaleTherapist")),
+      preferredMaleTherapists: getSelectedTherapistName(data.get("preferredMaleTherapist")),
+      taxiFare: `${usd(estimate.taxiUsd)} (${peso(estimate.taxiFarePhp)})`,
+      estimatedServiceCost: estimate.estimatedServiceCost,
+      totalEstimateUsdPeso: estimate.totalEstimate,
+      notes: data.get("notes"),
+      termsAccepted: data.get("termsAccepted") === "on" ? "Yes" : "No"
+    };
+
+    status.textContent = "Sending booking request...";
+    try {
+      await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      status.textContent = "Booking request saved to Google Sheets.";
+      form.reset();
+      const taxiFare = document.getElementById("taxiFare");
+      if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
+      updateBookingEstimate();
+    } catch {
+      status.textContent = "Booking could not be sent. Check the Apps Script URL.";
+    }
+  });
+}
+
+function getOfficialContact() {
+  const contacts = getSiteSettings().contacts || {};
+  const order = [
+    ["whatsapp", contacts.whatsapp, "logo/whatsapp.png"],
+    ["viber", contacts.viber, "logo/viber.png"],
+    ["telegram", contacts.telegram, "logo/telegram.png"],
+    ["wechat", contacts.wechat, "logo/wechat.png"],
+    ["kakaotalk", contacts.kakaotalk, "logo/kakaotalk.png"]
+  ];
+  const found = order.find(([, value]) => value);
+  return found ? { app: found[0], value: found[1], icon: found[2] } : { app: "", value: "", icon: "logo/whatsapp.png" };
+}
+
+function getOfficialNumber() {
+  return getOfficialContact().value;
+}
+
+function renderOfficialNumber() {
+  const official = getOfficialContact();
+  const isAdminPage = window.location.pathname.toLowerCase().includes("/admin/");
+  const iconPath = isAdminPage ? `../${official.icon}` : official.icon;
+  document.querySelectorAll("[data-official-number]").forEach((target) => {
+    target.textContent = official.value ? `Official number: ${official.value}` : "Official number: Add in Admin";
+  });
+  document.querySelectorAll("[data-official-icon]").forEach((target) => {
+    target.src = iconPath;
+    target.alt = official.app ? `${official.app} icon` : "Official contact icon";
+  });
+}
+
+function normalizePhone(value) {
+  return String(value || "").replace(/[^\d+]/g, "");
+}
+
+function appContactLink(app, value) {
+  const clean = normalizePhone(value);
+  const text = encodeURIComponent(value);
+  if (app === "whatsapp" && clean) return `https://wa.me/${clean.replace("+", "")}`;
+  if (app === "viber" && clean) return `viber://chat?number=${encodeURIComponent(clean)}`;
+  if (app === "telegram") {
+    const handle = String(value || "").trim().replace(/^@/, "");
+    return handle && !/^\+?\d+$/.test(handle) ? `https://t.me/${encodeURIComponent(handle)}` : `Telegram: ${value}`;
+  }
+  if (app === "wechat") return `WeChat: ${value}`;
+  if (app === "kakaotalk") return `KakaoTalk: ${value}`;
+  return value;
+}
+
+function clickTargetForQr(value) {
+  return /^https?:\/\//.test(value) || /^[a-z]+:\/\//.test(value) ? value : "#";
+}
+
+function qrImageUrl(value) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=12&data=${encodeURIComponent(value)}`;
+}
+
+function renderCompanyContacts(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const contacts = getSiteSettings().contacts || {};
+  const labels = [
+    ["viber", "Viber", contacts.viber, "logo/viber.png"],
+    ["wechat", "WeChat", contacts.wechat, "logo/wechat.png"],
+    ["kakaotalk", "KakaoTalk", contacts.kakaotalk, "logo/kakaotalk.png"],
+    ["telegram", "Telegram", contacts.telegram, "logo/telegram.png"],
+    ["whatsapp", "WhatsApp", contacts.whatsapp, "logo/whatsapp.png"]
+  ];
+  target.innerHTML = labels
+    .filter(([, , value]) => value)
+    .map(([app, label, value, icon]) => {
+      const qrValue = appContactLink(app, value);
+      const clickTarget = clickTargetForQr(qrValue);
+      return `
+        <div class="contact-item app-contact">
+          <img class="app-icon" src="${icon}" alt="${label} icon">
+          <div>
+            <strong>${label}</strong><br>
+            <span>${value}</span>
+          </div>
+          <a class="app-qr" href="${clickTarget}" target="_blank" rel="noopener" aria-label="${label} QR code">
+            <img src="${qrImageUrl(qrValue)}" alt="${label} QR code">
+          </a>
+        </div>
+      `;
+    })
+    .join("") || `<p class="notice">Company chat numbers can be added in the admin panel.</p>`;
+}
+
+function renderTherapistLocations(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.innerHTML = getAllTherapists().map((therapist) => `
+    <div class="contact-item">
+      <strong>${therapist.name}</strong><br>
+      ${therapist.location}<br>
+      ${therapist.mapUrl ? `<a class="map-link" href="${therapist.mapUrl}" target="_blank" rel="noopener">Open Map</a>` : ""}
+    </div>
+  `).join("");
+}
+
+function setupFormMessage(formId, message) {
+  const form = document.getElementById(formId);
+  const status = document.getElementById("status");
+  if (!form || !status) return;
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    status.textContent = message;
+    form.reset();
+  });
+}
+
+function isAdminLoggedIn() {
+  return sessionStorage.getItem("eliteAdminLoggedIn") === "true";
+}
+
+function setAdminLoggedIn() {
+  sessionStorage.setItem("eliteAdminLoggedIn", "true");
+}
+
+function openAdminLogin(options = {}) {
+  if (document.getElementById("adminLoginBackdrop")) return;
+  const backdrop = document.createElement("div");
+  backdrop.className = "admin-login-backdrop";
+  backdrop.id = "adminLoginBackdrop";
+  backdrop.innerHTML = `
+    <form class="admin-login-modal" id="adminLoginForm">
+      <h2>Admin Login</h2>
+      <div class="field">
+        <label for="adminUsername">Username</label>
+        <input id="adminUsername" name="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="actions">
+        <button type="submit">Login</button>
+        <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
+      </div>
+      <p class="status" id="adminLoginStatus"></p>
+    </form>
+  `;
+  document.body.appendChild(backdrop);
+
+  const form = document.getElementById("adminLoginForm");
+  const status = document.getElementById("adminLoginStatus");
+  document.getElementById("adminUsername")?.focus();
+  document.getElementById("adminLoginCancel")?.addEventListener("click", () => {
+    if (options.required) return;
+    backdrop.remove();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    if (data.get("username") === ADMIN_USERNAME && data.get("password") === ADMIN_PASSWORD) {
+      setAdminLoggedIn();
+      backdrop.remove();
+      if (options.redirectToAdmin) {
+        window.location.href = "admin/add-therapist.html";
+      } else {
+        document.body.classList.remove("admin-locked");
+        options.onSuccess?.();
+      }
+      return;
+    }
+    status.textContent = "Invalid username or password.";
+  });
+}
+
+function requireAdminAccess(onSuccess) {
+  if (isAdminLoggedIn()) {
+    document.body.classList.remove("admin-locked");
+    onSuccess?.();
+    return;
+  }
+  openAdminLogin({ required: true, onSuccess });
+}
+
+function setupAdminShortcut() {
+  let firstKeyTime = 0;
+  document.addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+    if (!event.ctrlKey || event.altKey || event.metaKey) return;
+    if (key === "z") {
+      firstKeyTime = Date.now();
+      event.preventDefault();
+      return;
+    }
+    if (key === "x" && Date.now() - firstKeyTime < 1200) {
+      event.preventDefault();
+      firstKeyTime = 0;
+      if (window.location.pathname.toLowerCase().includes("/admin/")) {
+        requireAdminAccess();
+      } else {
+        openAdminLogin({ redirectToAdmin: true });
+      }
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  applyBusinessProfile();
+  renderOfficialNumber();
+  setupAdminShortcut();
+});
