@@ -617,6 +617,26 @@ function requireAdminAccess(onSuccess) {
   openAdminLogin({ required: true, onSuccess });
 }
 
+function createAdminLoginButton() {
+  if (document.getElementById("adminLoginButton")) return;
+
+  const button = document.createElement("button");
+  button.id = "adminLoginButton";
+  button.type = "button";
+  button.className = "admin-login-button";
+  button.textContent = "Admin";
+  button.title = "Open admin login";
+  button.addEventListener("click", () => {
+    if (window.location.pathname.toLowerCase().includes("/admin/")) {
+      requireAdminAccess();
+    } else {
+      openAdminLogin({ redirectToAdmin: true });
+    }
+  });
+
+  document.body.appendChild(button);
+}
+
 function setupAdminShortcut() {
   console.log("=== setupAdminShortcut CALLED ===");
   console.log("About to attach keydown listener to document");
@@ -626,14 +646,16 @@ function setupAdminShortcut() {
     const tagName = event.target.tagName.toLowerCase();
     const isTextInput = ["input", "textarea"].includes(tagName) || event.target.isContentEditable;
     
-    // Log all Ctrl+Alt combinations
-    if (event.ctrlKey && event.altKey) {
-      console.log(">>> Ctrl+Alt +" + key.toUpperCase() + " | shift=" + event.shiftKey + " meta=" + event.metaKey + " tag=" + tagName);
+    if (event.ctrlKey && (event.altKey || event.shiftKey)) {
+      console.log(">>> Shortcut attempt: Ctrl+" + (event.altKey ? "Alt" : "Shift") + "+" + key.toUpperCase() + " | shift=" + event.shiftKey + " alt=" + event.altKey + " meta=" + event.metaKey + " tag=" + tagName);
     }
     
-    // Check for Ctrl+Alt+Z exactly
-    if (event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && key === "z") {
-      console.log("!!! MATCH: Ctrl+Alt+Z !!!");
+    const ctrlAltZ = event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && key === "z";
+    const ctrlShiftL = event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && key === "l";
+    
+    if (ctrlAltZ || ctrlShiftL) {
+      const shortcutName = ctrlAltZ ? "Ctrl+Alt+Z" : "Ctrl+Shift+L";
+      console.log(`!!! MATCH: ${shortcutName} !!!`);
       console.log("isTextInput:", isTextInput);
       
       if (isTextInput) {
@@ -664,8 +686,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   applyBusinessProfile();
   renderOfficialNumber();
-  console.log("Setting up admin shortcut (Ctrl+Alt+Z)...");
+  console.log("Setting up admin shortcut (Ctrl+Alt+Z or Ctrl+Shift+L)...");
   setupAdminShortcut();
+  createAdminLoginButton();
   
   console.log("App initialization complete!");
 });
