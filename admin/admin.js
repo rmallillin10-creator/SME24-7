@@ -176,13 +176,20 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   renderTherapistImagePreview();
 });
 
-requireAdminAccess(async () => {
-  // Initialize Supabase
+async function initializeAdminPage() {
   await initSupabase();
-  
   setupAdminTabs();
   await loadSiteSettingsFromSupabase();
   loadBusinessProfileForm();
   loadTaxiFareForm();
   renderTherapistImagePreview();
-});
+}
+
+if (isAdminLoggedIn()) {
+  initializeAdminPage();
+} else {
+  requireAdminAccess(() => {
+    document.body.classList.remove("admin-locked");
+    initializeAdminPage();
+  });
+}

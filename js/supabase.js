@@ -42,59 +42,27 @@ async function initSupabase() {
   return supabase;
 }
 
-// Get current authenticated user
-async function getCurrentUser() {
-  const client = await initSupabase();
-  if (!client) return null;
-  
-  const { data: { user } } = await client.auth.getUser();
-  return user;
-}
+// Sign in admin with hardcoded local credentials
+async function adminSignIn(username, password) {
+  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "").trim();
 
-// Sign in admin with email and password
-async function adminSignIn(email, password) {
-  console.log("adminSignIn called with email/username:", email);
-
-  if (email === DEFAULT_ADMIN_USERNAME && password === DEFAULT_ADMIN_PASSWORD) {
-    console.log("Default admin fallback login used.");
+  if (normalizedUsername === DEFAULT_ADMIN_USERNAME && normalizedPassword === DEFAULT_ADMIN_PASSWORD) {
     return {
       data: null,
       error: null,
       user: {
-        email: DEFAULT_ADMIN_USERNAME,
+        username: DEFAULT_ADMIN_USERNAME,
         id: "local-admin",
         isDefaultAdmin: true
       }
     };
   }
 
-  const client = await initSupabase();
-  if (!client) {
-    console.error("Supabase client not initialized");
-    return { error: "Supabase not initialized" };
-  }
-  
-  try {
-    const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password
-    });
-    const user = data?.user || data?.session?.user || null;
-    console.log("adminSignIn result - user:", user, "error:", error);
-    return { data, error, user };
-  } catch (err) {
-    console.error("adminSignIn exception:", err);
-    return { error: err, user: null };
-  }
-}
-
-// Sign out admin
-async function adminSignOut() {
-  const client = await initSupabase();
-  if (!client) return { error: "Supabase not initialized" };
-  
-  const { error } = await client.auth.signOut();
-  return { error };
+  return {
+    error: { message: "Invalid admin username or password." },
+    user: null
+  };
 }
 
 // Fetch site settings from Supabase

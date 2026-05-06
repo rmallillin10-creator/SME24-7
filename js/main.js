@@ -524,13 +524,12 @@ function openAdminLogin(options = {}) {
   const backdrop = document.createElement("div");
   backdrop.className = "admin-login-backdrop";
   backdrop.id = "adminLoginBackdrop";
-  console.log("Backdrop created. Setting innerHTML...");
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
-      <p class="admin-login-help">Enter your Supabase admin email/password.</p>
+      <p class="admin-login-help">Use username <strong>admin</strong> and password <strong>admin123@</strong>.</p>
       <div class="field">
-        <label for="adminEmail">Email or username</label>
+        <label for="adminEmail">Username</label>
         <input id="adminEmail" name="email" type="text" autocomplete="username" required>
       </div>
       <div class="field">
@@ -541,22 +540,10 @@ function openAdminLogin(options = {}) {
         <button type="submit">Login</button>
         <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
       </div>
-      <p class="status" id="adminLoginStatus">Use your Supabase admin email/password.</p>
+      <p class="status" id="adminLoginStatus">Use your admin credentials.</p>
     </form>
   `;
-  console.log("HTML set. Appending to document.body...");
-  console.log("document.body:", document.body);
   document.body.appendChild(backdrop);
-  console.log("Backdrop appended!");
-  
-  const backdropCheck = document.getElementById("adminLoginBackdrop");
-  console.log("Backdrop found after append:", !!backdropCheck);
-  if (backdropCheck) {
-    const styles = window.getComputedStyle(backdropCheck);
-    console.log("Backdrop display:", styles.display);
-    console.log("Backdrop visibility:", styles.visibility);
-    console.log("Backdrop z-index:", styles.zIndex);
-  }
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
@@ -597,17 +584,16 @@ function openAdminLogin(options = {}) {
       // Try Supabase auth first
       const { data: authData, error: authError, user } = await adminSignIn(email, password);
       
-      console.log("Auth response - user:", user, "error:", authError);
-      
       if (user) {
-        // Supabase login successful
-        console.log("Login successful for:", user.email || user.id);
         setAdminLoggedIn();
         status.textContent = "Login successful! Redirecting...";
         setTimeout(() => {
           backdrop.remove();
           if (options.redirectToAdmin) {
-            window.location.href = "admin/add-therapist.html";
+            const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
+              ? "../admin/add-therapist.html"
+              : "admin/add-therapist.html";
+            window.location.href = adminPageUrl;
           } else {
             document.body.classList.remove("admin-locked");
             options.onSuccess?.();
@@ -617,7 +603,9 @@ function openAdminLogin(options = {}) {
       }
       
       if (authError) {
-        const errorMsg = authError.message || "Invalid email or password.";
+        const errorMsg = typeof authError === "string"
+          ? authError
+          : authError.message || "Invalid email or password.";
         console.log("Login failed:", errorMsg);
         status.textContent = errorMsg;
         return;
