@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login Debug</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body {
+      padding: 20px;
+    }
+    .debug-panel {
+      background: #1a1a1a;
+      border: 2px solid #00ff00;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      color: #00ff00;
+    }
+    .console-output {
+      background: #0a0a0a;
+      border: 1px solid #00ff00;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .log-entry {
+      margin: 2px 0;
+      padding: 2px;
+    }
+    .log-error {
+      color: #ff4444;
+    }
+    .log-success {
+      color: #44ff44;
+    }
+    .log-info {
+      color: #4488ff;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #00ff00;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #00cc00;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐛 Admin Login Debugger</h1>
+  
+  <div class="debug-panel">
+    <h2>Instructions</h2>
+    <p>1. Open this page in a browser tab</p>
+    <p>2. Press <strong>Ctrl + Alt + Z</strong> and watch the console below</p>
+    <p>3. The login modal should appear</p>
+    <p>4. All events will be logged in real-time</p>
+  </div>
+
+  <div class="debug-panel">
+    <h2>Direct Test Buttons</h2>
+    <button onclick="testOpenAdminLogin()">Test: Open Admin Login Modal</button>
+    <button onclick="clearConsole()">Clear Console</button>
+    <button onclick="testSupabaseInit()">Test: Initialize Supabase</button>
+  </div>
+
+  <div class="debug-panel">
+    <h2>Live Console Output</h2>
+    <div class="console-output" id="consoleOutput"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/therapists.js"></script>
+  <script src="js/supabase.js"></script>
+  
+  <script>
+    // Capture console.log
+    const originalLog = console.log;
+    const originalError = console.error;
+    const consoleOutput = document.getElementById("consoleOutput");
+    
+    function addConsoleEntry(message, type = "log") {
+      const entry = document.createElement("div");
+      entry.className = "log-entry";
+      if (type === "error") entry.classList.add("log-error");
+      if (type === "success") entry.classList.add("log-success");
+      if (type === "info") entry.classList.add("log-info");
+      
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${message}`;
+      consoleOutput.appendChild(entry);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+      originalLog(...args);
+      addConsoleEntry(args.join(" "), "log");
+    };
+    
+    console.error = function(...args) {
+      originalError(...args);
+      addConsoleEntry("ERROR: " + args.join(" "), "error");
+    };
+    
+    function clearConsole() {
+      consoleOutput.innerHTML = "";
+      addConsoleEntry("Console cleared", "info");
+    }
+    
+    function testOpenAdminLogin() {
+      console.log("=== Manual Test: openAdminLogin ===");
+      openAdminLogin({ redirectToAdmin: false });
+    }
+    
+    async function testSupabaseInit() {
+      console.log("=== Manual Test: Supabase Init ===");
+      const client = await initSupabase();
+      if (client) {
+        console.log("SUCCESS: Supabase client initialized");
+      } else {
+        console.error("FAILED: Could not initialize Supabase client");
+      }
+    }
+  </script>
+
+  <script src="js/main.js"></script>
+
+  <script>
+    // Log page load
+    console.log("Debug page loaded");
+    console.log("Current URL:", window.location.href);
+    console.log("Waiting for keypress... Press Ctrl+Alt+Z");
+    
+    // Test the shortcut manually
+    window.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.altKey) {
+        console.log("Captured: Ctrl+Alt +" + e.key.toUpperCase());
+      }
+    });
+  </script>
+</body>
+</html>

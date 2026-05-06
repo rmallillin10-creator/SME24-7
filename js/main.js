@@ -510,10 +510,21 @@ function setAdminLoggedIn() {
 }
 
 function openAdminLogin(options = {}) {
-  if (document.getElementById("adminLoginBackdrop")) return;
+  console.log("===== openAdminLogin CALLED =====");
+  console.log("options:", options);
+  
+  const existing = document.getElementById("adminLoginBackdrop");
+  console.log("Existing backdrop:", existing);
+  if (existing) {
+    console.log("Modal already open, returning.");
+    return;
+  }
+  
+  console.log("Creating backdrop...");
   const backdrop = document.createElement("div");
   backdrop.className = "admin-login-backdrop";
   backdrop.id = "adminLoginBackdrop";
+  console.log("Backdrop created. Setting innerHTML...");
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
@@ -533,7 +544,19 @@ function openAdminLogin(options = {}) {
       <p class="status" id="adminLoginStatus">Use your Supabase admin email/password.</p>
     </form>
   `;
+  console.log("HTML set. Appending to document.body...");
+  console.log("document.body:", document.body);
   document.body.appendChild(backdrop);
+  console.log("Backdrop appended!");
+  
+  const backdropCheck = document.getElementById("adminLoginBackdrop");
+  console.log("Backdrop found after append:", !!backdropCheck);
+  if (backdropCheck) {
+    const styles = window.getComputedStyle(backdropCheck);
+    console.log("Backdrop display:", styles.display);
+    console.log("Backdrop visibility:", styles.visibility);
+    console.log("Backdrop z-index:", styles.zIndex);
+  }
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
@@ -595,33 +618,38 @@ function requireAdminAccess(onSuccess) {
 }
 
 function setupAdminShortcut() {
-  console.log("Admin shortcut setup initialized. Use Ctrl+Alt+Z to login.");
+  console.log("=== setupAdminShortcut CALLED ===");
+  console.log("About to attach keydown listener to document");
+  
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     const tagName = event.target.tagName.toLowerCase();
     const isTextInput = ["input", "textarea"].includes(tagName) || event.target.isContentEditable;
     
-    // Debug: log all Ctrl+Alt combinations
+    // Log all Ctrl+Alt combinations
     if (event.ctrlKey && event.altKey) {
-      console.log("Ctrl+Alt pressed with key:", key);
+      console.log(">>> Ctrl+Alt +" + key.toUpperCase() + " | shift=" + event.shiftKey + " meta=" + event.metaKey + " tag=" + tagName);
     }
     
-    // Check for Ctrl+Alt+Z
+    // Check for Ctrl+Alt+Z exactly
     if (event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && key === "z") {
-      console.log("Admin shortcut triggered! isTextInput=", isTextInput);
+      console.log("!!! MATCH: Ctrl+Alt+Z !!!");
+      console.log("isTextInput:", isTextInput);
+      
       if (isTextInput) {
-        console.log("Text input detected, ignoring shortcut.");
+        console.log("Skipping - in text input");
         return;
       }
+      
+      console.log("Preventing default...");
       event.preventDefault();
-      console.log("Opening admin login...");
-      if (window.location.pathname.toLowerCase().includes("/admin/")) {
-        requireAdminAccess();
-      } else {
-        openAdminLogin({ redirectToAdmin: true });
-      }
+      
+      console.log("Calling openAdminLogin({ redirectToAdmin: true })");
+      openAdminLogin({ redirectToAdmin: true });
     }
   });
+  
+  console.log("Keydown listener attached successfully");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
