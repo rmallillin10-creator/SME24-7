@@ -528,7 +528,7 @@ function openAdminLogin(options = {}) {
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
-      <p class="admin-login-help">Enter your Supabase admin email/password, or use default credentials: <strong>admin</strong> / <strong>admin123@</strong>.</p>
+      <p class="admin-login-help">Enter your Supabase admin email/password.</p>
       <div class="field">
         <label for="adminEmail">Email or username</label>
         <input id="adminEmail" name="email" type="text" autocomplete="username" required>
@@ -541,7 +541,7 @@ function openAdminLogin(options = {}) {
         <button type="submit">Login</button>
         <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
       </div>
-      <p class="status" id="adminLoginStatus">Use your Supabase admin email/password, or default admin/admin123@.</p>
+      <p class="status" id="adminLoginStatus">Use your Supabase admin email/password.</p>
     </form>
   `;
   console.log("HTML set. Appending to document.body...");
