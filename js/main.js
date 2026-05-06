@@ -529,8 +529,8 @@ function openAdminLogin(options = {}) {
       <h2>Admin Login</h2>
       <p class="admin-login-help">Use username <strong>admin</strong> and password <strong>admin123@</strong>.</p>
       <div class="field">
-        <label for="adminEmail">Username</label>
-        <input id="adminEmail" name="email" type="text" autocomplete="username" required>
+        <label for="adminUsername">Username</label>
+        <input id="adminUsername" name="username" type="text" autocomplete="username" required>
       </div>
       <div class="field">
         <label for="adminPassword">Password</label>
@@ -547,7 +547,7 @@ function openAdminLogin(options = {}) {
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
-  const emailInput = document.getElementById("adminEmail");
+  const usernameInput = document.getElementById("adminUsername");
   const cancelButton = document.getElementById("adminLoginCancel");
 
   if (!form) {
@@ -557,10 +557,10 @@ function openAdminLogin(options = {}) {
   if (!status) {
     console.error("Admin login status element not found.");
   }
-  if (!emailInput) {
-    console.error("Admin login email input not found.");
+  if (!usernameInput) {
+    console.error("Admin login username input not found.");
   } else {
-    emailInput.focus();
+    usernameInput.focus();
   }
   if (cancelButton) {
     cancelButton.addEventListener("click", () => {
@@ -575,14 +575,13 @@ function openAdminLogin(options = {}) {
 
     try {
       const data = new FormData(form);
-      const email = String(data.get("email") || "").trim();
+      const username = String(data.get("username") || "").trim();
       const password = String(data.get("password") || "");
       
-      console.log("Admin login attempt with email/username:", email);
+      console.log("Admin login attempt with username:", username);
       status.textContent = "Logging in...";
       
-      // Try Supabase auth first
-      const { data: authData, error: authError, user } = await adminSignIn(email, password);
+      const { data: authData, error: authError, user } = await adminSignIn(username, password);
       
       if (user) {
         setAdminLoggedIn();
