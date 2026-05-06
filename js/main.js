@@ -589,7 +589,7 @@ function setupAdminShortcut() {
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     const isTextInput = ["input", "textarea"].includes(event.target.tagName.toLowerCase()) || event.target.isContentEditable;
-    if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && key === "a") {
+    if (event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && key === "z") {
       if (isTextInput) return;
       event.preventDefault();
       if (window.location.pathname.toLowerCase().includes("/admin/")) {
