@@ -205,29 +205,3 @@ async function saveTherapistToSupabase(therapist) {
   }
 }
 
-// Save therapist draft to Supabase
-async function saveTherapistDraftToSupabase(draft) {
-  const client = await initSupabase();
-  if (!client) return { error: "Supabase not initialized" };
-  
-  try {
-    const { data, error } = await client
-      .from("therapist_drafts")
-      .insert([{
-        id: draft.id,
-        name: draft.name,
-        gender: draft.gender,
-        age: draft.age,
-        vital_statistics: draft.vitalStatistics,
-        address: draft.address,
-        profile_picture: draft.profilePicture,
-        slides: draft.slides || [],
-        created_at: draft.createdAt
-      }]);
-    
-    return { data, error };
-  } catch (e) {
-    console.error("Error saving therapist draft:", e);
-    return { error: e.message };
-  }
-}

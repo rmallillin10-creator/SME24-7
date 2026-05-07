@@ -6,7 +6,7 @@ function peso(value) {
   }).format(value);
 }
 
-const GOOGLE_SHEETS_WEB_APP_URL = "";
+const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/YOUR_WEB_APP_URL_HERE/exec";
 const PHP_PER_USD = 57.5;
 const DEFAULT_SITE_SETTINGS = {
   business: {

@@ -150,26 +150,39 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   const data = new FormData(therapistDraftForm);
   const profilePicture = await readLogoFile(therapistProfilePictureInput.files?.[0]);
   const slides = await readImageFiles(therapistSlidesInput.files, 10);
-  const draft = {
+  
+  // Create therapist object matching public data structure
+  const therapist = {
     id: Date.now().toString(),
     name: data.get("therapistName").trim(),
     gender: data.get("therapistGender"),
-    age: Number(data.get("therapistAge")) || "",
-    vitalStatistics: data.get("therapistVitalStatistics").trim(),
-    address: data.get("therapistAddress").trim(),
-    profilePicture,
-    slides,
+    location: data.get("therapistLocation").trim(),
+    rate: Number(data.get("therapistRate")) || 0,
+    specialties: data.get("therapistSpecialties").split(',').map(s => s.trim()).filter(s => s),
+    bio: data.get("therapistBio").trim(),
+    availability: data.get("therapistAvailability").trim(),
+    mapUrl: data.get("therapistMapUrl").trim(),
+    image: profilePicture || "images/therapists/default.svg",
+    slides: slides,
+    pricing: { 1: Number(data.get("therapistRate")) || 0 },
+    featured: false,
     createdAt: new Date().toISOString()
   };
-  const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
-  localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, draft]));
   
-  // Also save to Supabase
-  const supabaseResult = await saveTherapistDraftToSupabase(draft);
+  // Save to localStorage drafts
+  const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+  localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapist]));
+  
+  // Also save to Supabase therapists table (not drafts)
+  const supabaseResult = await saveTherapistToSupabase(therapist);
   if (supabaseResult.error) {
-    therapistDraftStatus.textContent = "Therapist draft saved locally (Supabase sync failed).";
+    therapistDraftStatus.textContent = "Therapist saved locally (Supabase sync failed).";
   } else {
-    therapistDraftStatus.textContent = "Therapist draft saved locally for Supabase migration.";
+    therapistDraftStatus.textContent = "Therapist saved successfully!";
+    // Add to global therapist data for immediate display
+    if (typeof therapistData !== 'undefined') {
+      therapistData.push(therapist);
+    }
   }
   
   therapistDraftForm.reset();
