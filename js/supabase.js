@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 
 const DEFAULT_ADMIN_USERNAME = "admin";
-const DEFAULT_ADMIN_PASSWORD = "admin123@";
+const DEFAULT_ADMIN_PASSWORD = "admin123";
 
 // Initialize Supabase client (requires @supabase/supabase-js library)
 let supabase = null;

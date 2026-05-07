@@ -527,7 +527,7 @@ function openAdminLogin(options = {}) {
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
-      <p class="admin-login-help">Use username <strong>admin</strong> and password <strong>admin123@</strong>.</p>
+      <p class="admin-login-help">Use username <strong>admin</strong> and password <strong>admin123</strong>.</p>
       <div class="field">
         <label for="adminUsername">Username</label>
         <input id="adminUsername" name="username" type="text" autocomplete="username" required>
@@ -544,6 +544,8 @@ function openAdminLogin(options = {}) {
     </form>
   `;
   document.body.appendChild(backdrop);
+  const statusEl = document.getElementById("adminAccessStatus");
+  if (statusEl) statusEl.style.display = "none";
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
@@ -564,7 +566,10 @@ function openAdminLogin(options = {}) {
   }
   if (cancelButton) {
     cancelButton.addEventListener("click", () => {
-      if (options.required) return;
+      if (options.required) {
+        window.location.href = "index.html";
+        return;
+      }
       backdrop.remove();
     });
   }
@@ -624,6 +629,11 @@ function requireAdminAccess(onSuccess) {
     onSuccess?.();
     return;
   }
+  const statusEl = document.getElementById("adminAccessStatus");
+  if (statusEl) {
+    statusEl.style.display = "block";
+    statusEl.textContent = "Opening admin login...";
+  }
   openAdminLogin({ required: true, onSuccess });
 }
 
@@ -660,11 +670,10 @@ function setupAdminShortcut() {
       console.log(">>> Shortcut attempt: Ctrl+" + (event.altKey ? "Alt" : "Shift") + "+" + key.toUpperCase() + " | shift=" + event.shiftKey + " alt=" + event.altKey + " meta=" + event.metaKey + " tag=" + tagName);
     }
     
-    const ctrlAltZ = event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && key === "z";
-    const ctrlShiftL = event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && key === "l";
+    const ctrl5 = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey && key === "5";
     
-    if (ctrlAltZ || ctrlShiftL) {
-      const shortcutName = ctrlAltZ ? "Ctrl+Alt+Z" : "Ctrl+Shift+L";
+    if (ctrl5) {
+      const shortcutName = "Ctrl+5";
       console.log(`!!! MATCH: ${shortcutName} !!!`);
       console.log("isTextInput:", isTextInput);
       
