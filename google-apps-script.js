@@ -38,22 +38,51 @@ function doPost(e) {
     const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
     const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
 
+    let result;
     if (action === 'saveBooking') {
-      return handleSaveBooking(sheet, data, autoAdjustHeaders);
+      result = handleSaveBooking(sheet, data, autoAdjustHeaders);
     } else if (action === 'saveTherapistCounts') {
-      return handleSaveTherapistCounts(sheet, data);
+      result = handleSaveTherapistCounts(sheet, data);
+    } else {
+      result = { error: "Unknown action" };
     }
 
+    // Return response with CORS headers
     return ContentService
-      .createTextOutput(JSON.stringify({ error: "Unknown action" }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400'
+      });
 
   } catch (error) {
     console.error("doPost error:", error);
     return ContentService
       .createTextOutput(JSON.stringify({ error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400'
+      });
   }
+}
+
+// Handle OPTIONS preflight requests
+function doGet(e) {
+  return ContentService
+    .createTextOutput('OK')
+    .setMimeType(ContentService.MimeType.TEXT)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400'
+    });
 }
 
 function handleSaveBooking(sheet, bookingData, autoAdjustHeaders) {

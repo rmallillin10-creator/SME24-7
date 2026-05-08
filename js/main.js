@@ -624,6 +624,7 @@ function setupBookingForm() {
     event.preventDefault();
     updateBookingEstimate();
 
+    const data = new FormData(form);
     const googleSheetsWebAppUrl = (data.get("googleSheetsUrl") || "").trim() || getGoogleSheetsWebAppUrl();
     const useLocalFallback = !googleSheetsWebAppUrl;
     if (useLocalFallback) {
@@ -632,7 +633,6 @@ function setupBookingForm() {
     }
 
     const estimate = getBookingEstimate();
-    const data = new FormData(form);
 
     // Handle multiple therapist selections
     const getTherapistSelections = (name) => {
@@ -733,6 +733,13 @@ function setupBookingForm() {
 
 // Enhanced function to save booking to Google Sheets with auto-adjusting headers
 async function saveBookingToGoogleSheets(bookingData) {
+  const url = getGoogleSheetsWebAppUrl();
+  console.log('Attempting to save to Google Sheets URL:', url);
+
+  if (!url) {
+    throw new Error('Google Sheets URL is not configured');
+  }
+
   try {
     // Ensure all required fields are present with proper formatting
     const enhancedBookingData = {
@@ -787,6 +794,7 @@ async function saveBookingToGoogleSheets(bookingData) {
     
     const response = await fetch(getGoogleSheetsWebAppUrl(), {
       method: 'POST',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -814,8 +822,33 @@ async function saveBookingToGoogleSheets(bookingData) {
   }
 }
 
-// Function to save therapist booking counts to Google Sheets
-async function saveTherapistBookingCountsToGoogleSheets() {
+// Function to test Google Sheets connectivity
+async function testGoogleSheetsConnection() {
+  const url = getGoogleSheetsWebAppUrl();
+  if (!url) {
+    console.warn('Google Sheets URL not configured');
+    return false;
+  }
+
+  try {
+    console.log('Testing Google Sheets connection to:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'cors'
+    });
+
+    if (response.ok) {
+      console.log('Google Sheets connection test successful');
+      return true;
+    } else {
+      console.warn('Google Sheets connection test failed:', response.status, response.statusText);
+      return false;
+    }
+  } catch (error) {
+    console.warn('Google Sheets connection test error:', error);
+    return false;
+  }
+}
   try {
     const therapists = getAllTherapists();
     const therapistCounts = therapists.map(therapist => ({
