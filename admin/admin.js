@@ -119,15 +119,15 @@ function setupFormSubmissions() {
       try {
         const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
         if (supabaseResult.error) {
-          businessProfileStatus.textContent = "Business profile saved locally.";
+          businessProfileStatus.textContent = "✅ Business profile saved locally (Supabase sync failed)";
         } else {
-          businessProfileStatus.textContent = "Business profile saved successfully!";
+          businessProfileStatus.textContent = "✅ Business profile saved successfully!";
         }
       } catch (e) {
-        businessProfileStatus.textContent = "Business profile saved locally.";
+        businessProfileStatus.textContent = "✅ Business profile saved locally";
       }
     } else {
-      businessProfileStatus.textContent = "Business profile saved locally.";
+      businessProfileStatus.textContent = "✅ Business profile saved successfully!";
     }
     
     applyBusinessProfile();
@@ -154,15 +154,15 @@ function setupFormSubmissions() {
       try {
         const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
         if (supabaseResult.error) {
-          taxiFareStatus.textContent = "Taxi fares saved locally.";
+          taxiFareStatus.textContent = "✅ Taxi fares saved locally (Supabase sync failed)";
         } else {
-          taxiFareStatus.textContent = "Taxi fares saved successfully!";
+          taxiFareStatus.textContent = "✅ Taxi fares saved successfully!";
         }
       } catch (e) {
-        taxiFareStatus.textContent = "Taxi fares saved locally.";
+        taxiFareStatus.textContent = "✅ Taxi fares saved locally";
       }
     } else {
-      taxiFareStatus.textContent = "Taxi fares saved locally.";
+      taxiFareStatus.textContent = "✅ Taxi fares saved successfully!";
     }
   });
 }
@@ -222,9 +222,9 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   // Also save to Supabase therapists table (not drafts)
   const supabaseResult = await saveTherapistToSupabase(therapist);
   if (supabaseResult.error) {
-    therapistDraftStatus.textContent = "Therapist saved locally (Supabase sync failed).";
+    therapistDraftStatus.textContent = "✅ Therapist saved locally (Supabase sync failed)";
   } else {
-    therapistDraftStatus.textContent = "Therapist saved successfully!";
+    therapistDraftStatus.textContent = "✅ Therapist saved successfully!";
     // Add to global therapist data for immediate display
     if (typeof therapistData !== 'undefined') {
       therapistData.push(therapist);

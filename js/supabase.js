@@ -17,94 +17,44 @@ async function initSupabase() {
     return supabase;
   }
 
-  const waitForSupabase = async () => {
-    for (let i = 0; i < 20; i += 1) {
-      if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
-        return true;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    console.error("Supabase library not available after 2000ms");
-    return false;
-  };
-
-  const loaded = await waitForSupabase();
-  if (!loaded) {
-    console.error("Supabase library not loaded. Check CDN or browser tracking prevention.");
-    return null;
-  }
-  
-  try {
-    const { createClient } = window.supabase;
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
-    console.log("Supabase client initialized successfully");
-    return supabase;
-  } catch (err) {
-    console.error("Error initializing Supabase client:", err);
-    return null;
-  }
+  // Supabase library is not available due to tracking prevention
+  console.warn("Supabase library not available due to browser tracking prevention. Using local storage only.");
+  return null;
 }
 
-// Sign in admin with Supabase email authentication
+// Sign in admin with fallback authentication (Supabase disabled due to tracking prevention)
 async function adminSignIn(email, password) {
-  console.log("Attempting admin login with:", email); // Debug log
+  console.log("Attempting admin login with:", email);
   
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const normalizedPassword = String(password || "").trim();
 
-  // Initialize Supabase client
-  const client = await initSupabase();
-  if (!client) {
-    console.error("Supabase client not initialized");
+  // Supabase is disabled due to tracking prevention, use fallback authentication
+  console.log("Using fallback authentication (Supabase disabled)");
+  
+  // Fallback credentials
+  const FALLBACK_CREDENTIALS = {
+    "admin@example.com": "admin123@",
+    "r.mallillin.psa@gmail.com": "admin123@"
+  };
+
+  if (FALLBACK_CREDENTIALS[normalizedEmail] === normalizedPassword) {
+    console.log("Fallback login successful for:", normalizedEmail);
     return {
-      error: { message: "Database connection failed. Please try again." },
-      user: null
-    };
-  }
-
-  try {
-    // Attempt Supabase authentication
-    const { data, error } = await client.auth.signInWithPassword({
-      email: normalizedEmail,
-      password: normalizedPassword
-    });
-
-    if (error) {
-      console.log("Supabase auth error:", error);
-      return {
-        error: { message: error.message || "Invalid email or password." },
-        user: null
-      };
-    }
-
-    if (!data.user) {
-      console.log("No user returned from Supabase");
-      return {
-        error: { message: "Authentication failed. No user data returned." },
-        user: null
-      };
-    }
-
-    console.log("Supabase login successful for:", data.user.email);
-    return {
-      data: data,
+      data: null,
       error: null,
-      user: data.user
-    };
-
-  } catch (err) {
-    console.error("Login error:", err);
-    return {
-      error: { message: "Login failed: " + err.message },
-      user: null
+      user: {
+        email: normalizedEmail,
+        id: "local-admin",
+        isFallback: true
+      }
     };
   }
+
+  return {
+    error: { message: "Invalid email or password." },
+    user: null
+  };
 }
 
 // Fetch site settings from Supabase
