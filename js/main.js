@@ -96,7 +96,7 @@ function applyBusinessProfile() {
   const settings = getSiteSettings();
   const business = settings.business || DEFAULT_SITE_SETTINGS.business;
   const logo = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/elite%20logo.png" : "logo/elite%20logo.png");
-  const favicon = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/favicon.svg" : "logo/favicon.svg");
+  const favicon = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/elite%20logo.png" : "logo/elite%20logo.png");
 
   document.querySelectorAll("[data-business-name]").forEach((target) => {
     target.textContent = business.name;
