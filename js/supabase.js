@@ -1,10 +1,8 @@
 // Supabase Configuration and Client Initialization
-(function() {
-  // Prevent multiple script loading issues
-  if (window.supabaseLoaded) {
-    console.warn("Supabase script already loaded");
-    return;
-  }
+// Prevent multiple script loading issues
+if (window.supabaseLoaded) {
+  console.warn("Supabase script already loaded");
+} else {
   window.supabaseLoaded = true;
 
   const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
@@ -249,4 +247,4 @@ async function saveTherapistToSupabase(therapist) {
   }
 }
 
-})(); // Close the IIFE
+} // Close the else block
