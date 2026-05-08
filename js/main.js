@@ -849,6 +849,9 @@ async function testGoogleSheetsConnection() {
     return false;
   }
 }
+
+// Function to save therapist booking counts to Google Sheets
+async function saveTherapistBookingCountsToGoogleSheets() {
   try {
     const therapists = getAllTherapists();
     const therapistCounts = therapists.map(therapist => ({
