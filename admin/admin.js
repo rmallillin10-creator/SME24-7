@@ -54,72 +54,108 @@ function readImageFiles(files, limit = 10) {
   return Promise.all(Array.from(files || []).slice(0, limit).map(readLogoFile));
 }
 
-businessLogoInput?.addEventListener("change", async () => {
-  const logo = await readLogoFile(businessLogoInput.files?.[0]);
-  if (logo) businessLogoPreview.src = logo;
-});
+function setupImagePreviews() {
+  // Business logo preview
+  businessLogoInput?.addEventListener("change", async () => {
+    const logo = await readLogoFile(businessLogoInput.files?.[0]);
+    if (logo) businessLogoPreview.src = logo;
+  });
 
-businessProfileForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const data = new FormData(businessProfileForm);
-  const currentSettings = getSiteSettings();
-  const uploadedLogo = await readLogoFile(businessLogoInput.files?.[0]);
-  const nextSettings = {
-    ...currentSettings,
-    business: {
-      name: data.get("businessName").trim(),
-      address: data.get("businessAddress").trim(),
-      mapsLink: data.get("businessMapsLink").trim(),
-      logo: uploadedLogo || currentSettings.business.logo || ""
-    },
-    services: [
-      { name: "Whole Body Massage", price: Number(data.get("wholeBodyPrice")) || 0 },
-      { name: "Sensual Massage", price: Number(data.get("sensualPrice")) || 0 }
-    ],
-    contacts: {
-      viber: data.get("viber").trim(),
-      wechat: data.get("wechat").trim(),
-      kakaotalk: data.get("kakaotalk").trim(),
-      telegram: data.get("telegram").trim(),
-      whatsapp: data.get("whatsapp").trim()
+  // Therapist profile picture preview
+  therapistProfilePictureInput?.addEventListener("change", async () => {
+    const profilePic = await readLogoFile(therapistProfilePictureInput.files?.[0]);
+    if (profilePic && document.getElementById("therapistProfilePicturePreview")) {
+      document.getElementById("therapistProfilePicturePreview").src = profilePic;
     }
-  };
+  });
 
-  localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
-  cachedSettings = nextSettings;
-  
-  // Also save to Supabase
-  const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
-  if (supabaseResult.error) {
-    businessProfileStatus.textContent = "Business profile saved locally (Supabase sync failed).";
-  } else {
-    businessProfileStatus.textContent = "Business profile saved.";
-  }
-  
-  applyBusinessProfile();
-  renderOfficialNumber();
-});
-
-function loadTaxiFareForm() {
-  const settings = getSiteSettings();
-  taxiFareForm.taxiFare.value = settings.taxiFare || 0;
-  taxiFareForm.taxiFareCurrency.value = settings.taxiFareCurrency || "PHP";
-  taxiFareForm.taxiFareNotes.value = settings.taxiFareNotes || "";
+  // Therapist slides preview
+  therapistSlidesInput?.addEventListener("change", async () => {
+    const slides = await readImageFiles(therapistSlidesInput.files, 10);
+    renderTherapistImagePreview();
+  });
 }
 
-taxiFareForm?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const data = new FormData(taxiFareForm);
-  const currentSettings = getSiteSettings();
-  const nextSettings = {
-    ...currentSettings,
-    taxiFare: Number(data.get("taxiFare")) || 0,
-    taxiFareCurrency: data.get("taxiFareCurrency") || "PHP",
-    taxiFareNotes: data.get("taxiFareNotes").trim()
-  };
-  localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
-  taxiFareStatus.textContent = "Taxi fare saved.";
-});
+function setupFormSubmissions() {
+  // Business profile form submission
+  businessProfileForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(businessProfileForm);
+    const currentSettings = getSiteSettings();
+    const uploadedLogo = await readLogoFile(businessLogoInput.files?.[0]);
+    const nextSettings = {
+      ...currentSettings,
+      business: {
+        name: data.get("businessName").trim(),
+        address: data.get("businessAddress").trim(),
+        mapsLink: data.get("businessMapsLink").trim(),
+        logo: uploadedLogo || currentSettings.business.logo || ""
+      },
+      services: [
+        { name: "Whole Body Massage", price: Number(data.get("wholeBodyPrice")) || 0 },
+        { name: "Sensual Massage", price: Number(data.get("sensualPrice")) || 0 }
+      ],
+      contacts: {
+        viber: data.get("viber").trim(),
+        wechat: data.get("wechat").trim(),
+        kakaotalk: data.get("kakaotalk").trim(),
+        telegram: data.get("telegram").trim(),
+        whatsapp: data.get("whatsapp").trim()
+      }
+    };
+
+    localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
+    cachedSettings = nextSettings;
+    
+    // Also save to Supabase
+    const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
+    if (supabaseResult.error) {
+      businessProfileStatus.textContent = "Business profile saved locally (Supabase sync failed).";
+    } else {
+      businessProfileStatus.textContent = "Business profile saved.";
+    }
+    
+    applyBusinessProfile();
+  });
+
+  // Taxi fare form submission
+  taxiFareForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(taxiFareForm);
+    const settings = getSiteSettings();
+    const taxiFares = {
+      makati: Number(data.get("makatiFare")) || 0,
+      bgc: Number(data.get("bgcFare")) || 0,
+      quezonCity: Number(data.get("quezonCityFare")) || 0,
+      pasay: Number(data.get("pasayFare")) || 0,
+      mandaluyong: Number(data.get("mandaluyongFare")) || 0,
+      sanJuan: Number(data.get("sanJuanFare")) || 0,
+      pasig: Number(data.get("pasigFare")) || 0,
+      taguig: Number(data.get("taguigFare")) || 0,
+      pateros: Number(data.get("paterosFare")) || 0,
+      muntinlupa: Number(data.get("muntinlupaFare")) || 0,
+      lasPinas: Number(data.get("lasPinasFare")) || 0,
+      paranaque: Number(data.get("paranaqueFare")) || 0,
+      caloocan: Number(data.get("caloocanFare")) || 0,
+      malabon: Number(data.get("malabonFare")) || 0,
+      navotas: Number(data.get("navotasFare")) || 0,
+      valenzuela: Number(data.get("valenzuelaFare")) || 0,
+      marikina: Number(data.get("marikinaFare")) || 0
+    };
+
+    const nextSettings = { ...settings, taxiFares };
+    localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
+    cachedSettings = nextSettings;
+    
+    // Also save to Supabase
+    const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
+    if (supabaseResult.error) {
+      taxiFareStatus.textContent = "Taxi fares saved locally (Supabase sync failed).";
+    } else {
+      taxiFareStatus.textContent = "Taxi fares saved.";
+    }
+  });
+}
 
 async function renderTherapistImagePreview() {
   const profile = await readLogoFile(therapistProfilePictureInput?.files?.[0]);
