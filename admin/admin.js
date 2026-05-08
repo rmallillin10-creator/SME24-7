@@ -259,15 +259,21 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
     localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapist]));
   } catch (quotaError) {
     if (quotaError.name === 'QuotaExceededError') {
-      // Clear old drafts and try again
-      console.warn("Storage quota exceeded, clearing old drafts...");
+      // Storage quota exceeded - try to save without slides/images
+      console.warn("Storage quota exceeded, saving therapist without images...");
       try {
-        localStorage.removeItem("eliteTherapistDrafts");
-        localStorage.setItem("eliteTherapistDrafts", JSON.stringify([therapist]));
-        therapistDraftStatus.textContent = "✅ Therapist saved (cleared old drafts to make space)";
-      } catch (clearError) {
-        therapistDraftStatus.textContent = "⚠️ Storage full. Please clear browser data or use smaller images.";
-        console.error("Storage completely full:", clearError);
+        const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+        const therapistWithoutSlides = {
+          ...therapist,
+          image: "images/therapists/default.svg",
+          slides: []
+        };
+        localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapistWithoutSlides]));
+        therapistDraftStatus.textContent = "✅ Therapist saved (without images due to storage limit). You can add photos later.";
+      } catch (retryError) {
+        // If still failing, inform user
+        therapistDraftStatus.textContent = "⚠️ Storage full. Please clear browser data or remove old therapists from the admin panel.";
+        console.error("Storage error after retry:", retryError);
         return;
       }
     } else {
