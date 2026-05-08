@@ -27,8 +27,6 @@ function loadBusinessProfileForm() {
   businessProfileForm.businessName.value = business.name || "";
   businessProfileForm.businessAddress.value = business.address || "";
   businessProfileForm.businessMapsLink.value = business.mapsLink || "";
-  businessProfileForm.wholeBodyPrice.value = settings.services?.find((service) => service.name === "Whole Body Massage")?.price || 0;
-  businessProfileForm.sensualPrice.value = settings.services?.find((service) => service.name === "Sensual Massage")?.price || 0;
   businessProfileForm.viber.value = settings.contacts?.viber || "";
   businessProfileForm.wechat.value = settings.contacts?.wechat || "";
   businessProfileForm.kakaotalk.value = settings.contacts?.kakaotalk || "";
@@ -91,10 +89,8 @@ function setupFormSubmissions() {
         mapsLink: data.get("businessMapsLink").trim(),
         logo: uploadedLogo || currentSettings.business.logo || ""
       },
-      services: [
-        { name: "Whole Body Massage", price: Number(data.get("wholeBodyPrice")) || 0 },
-        { name: "Sensual Massage", price: Number(data.get("sensualPrice")) || 0 }
-      ],
+      // Remove fixed services pricing - pricing will be handled by individual therapists
+      services: currentSettings.services || [], // Keep existing services but don't update with fixed prices
       contacts: {
         viber: data.get("viber").trim(),
         wechat: data.get("wechat").trim(),
