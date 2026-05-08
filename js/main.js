@@ -130,22 +130,26 @@ function formatAvailability(availability) {
 }
 
 function therapistCard(therapist) {
+  const displayImage = therapist.image || (therapist.images && therapist.images.length > 0 ? therapist.images[0] : 'images/therapists/default.svg');
+  const hasMultipleImages = therapist.images && therapist.images.length > 1;
+  
   return '<div class="therapist-card" onclick="incrementTherapistBooking(\'' + therapist.id + '\')">' +
     '    <div class="therapist-image">' +
-      '      <img src="' + (therapist.image || 'images/therapists/default.svg') + '" alt="' + therapist.name + '">' +
-    '    </div>' +
-    '    <div class="therapist-info">' +
-    '      <h3>' + therapist.name + '</h3>' +
-    '      <p class="therapist-location">' + (therapist.location || 'Metro Manila') + '</p>' +
-    '      <p class="therapist-bio">' + (therapist.bio || 'Professional massage therapist') + '</p>' +
-    '      <p class="therapist-rate">Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + '</p>' +
-    '      <div class="therapist-specialties">' + ((therapist.specialties || []).join(', ')) + '</div>' +
-    '    </div>' +
-    '    <div class="therapist-actions">' +
-    '      <button class="btn-primary" onclick="selectTherapist(\'' + therapist.id + '\')">Select & Book</button>' +
-    '    </div>' +
-    '  </div>';
-  attachTherapistGallery(target);
+      '      <img src="' + displayImage + '" alt="' + therapist.name + '">' +
+      (hasMultipleImages ? '<div class="more-images-indicator">+' + (therapist.images.length - 1) + ' more</div>' : '') +
+      '    </div>' +
+      '    <div class="therapist-info">' +
+      '      <h3>' + therapist.name + '</h3>' +
+      '      <p class="therapist-location">' + (therapist.location || 'Metro Manila') + '</p>' +
+      '      <p class="therapist-bio">' + (therapist.bio || 'Professional massage therapist') + '</p>' +
+      '      <p class="therapist-rate">Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + '</p>' +
+      '      <div class="therapist-specialties">' + ((therapist.specialties || []).join(', ')) + '</div>' +
+      '    </div>' +
+      '    <div class="therapist-actions">' +
+      '      <button class="btn-primary" onclick="selectTherapist(\'' + therapist.id + '\')">Select & Book</button>' +
+      (hasMultipleImages ? '<button class="btn-secondary" onclick="viewTherapistPhotos(\'' + therapist.id + '\')">View Photos</button>' : '') +
+      '    </div>' +
+      '  </div>';
 }
 
 function setupDirectory(targetId, gender) {
@@ -214,6 +218,13 @@ function openTherapistGallery(therapist) {
       button.classList.add("active");
     });
   });
+}
+
+// View therapist photos function
+function viewTherapistPhotos(therapistId) {
+  const therapist = getTherapistById(therapistId);
+  if (!therapist) return;
+  openTherapistGallery(therapist);
 }
 
 function attachTherapistGallery(scope = document) {

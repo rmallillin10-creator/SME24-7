@@ -292,9 +292,57 @@ h3 {
 .therapist-card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow);
+  transition: transform 0.3s ease;
+}
+
+.therapist-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 25px 90px rgba(0, 0, 0, 0.15);
+}
+
+.therapist-image {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #262626;
+  object-fit: cover;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.more-images-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #007bff;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #495057, #343a40);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
 .therapist-photo {
