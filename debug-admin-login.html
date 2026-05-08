@@ -62,7 +62,7 @@
   <div class="debug-panel">
     <h2>Instructions</h2>
     <p>1. Open this page in a browser tab</p>
-    <p>2. Press <strong>Ctrl + Alt + Z</strong> and watch the console below</p>
+    <p>2. Press <strong>Ctrl + 5</strong> and watch the console below</p>
     <p>3. The login modal should appear</p>
     <p>4. All events will be logged in real-time</p>
   </div>
@@ -138,12 +138,12 @@
     // Log page load
     console.log("Debug page loaded");
     console.log("Current URL:", window.location.href);
-    console.log("Waiting for keypress... Press Ctrl+Alt+Z");
+    console.log("Waiting for keypress... Press Ctrl+5");
     
     // Test the shortcut manually
     window.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && e.altKey) {
-        console.log("Captured: Ctrl+Alt +" + e.key.toUpperCase());
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key === "5") {
+        console.log("Captured: Ctrl+5 (Admin shortcut activated)");
       }
     });
   </script>
