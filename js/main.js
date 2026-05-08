@@ -597,27 +597,8 @@ function openAdminLogin(options = {}) {
 }
 
 function attachFooterAdminLink() {
-  // Only attach footer admin link on contact.html
-  const currentPath = window.location.pathname.toLowerCase();
-  const isContactPage = currentPath.includes('contact.html') || 
-                       (currentPath.endsWith('/') && currentPath.includes('contact'));
-  
-  if (!isContactPage) {
-    return; // Don't add footer admin link to other pages
-  }
-  
-  const adminLink = document.getElementById("contactAdminLink");
-  if (!adminLink) return;
-
-  adminLink.href = "javascript:void(0)";
-  adminLink.setAttribute("role", "button");
-
-  adminLink.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    // Open the login UI modal on the current page. After success, it will redirect.
-    openAdminLogin({ redirectToAdmin: true });
-  });
+  // Completely disable footer admin link - no admin buttons in footer
+  return;
 }
 
 function requireAdminAccess(onSuccess) {
@@ -636,32 +617,8 @@ function requireAdminAccess(onSuccess) {
 
 
 function createAdminLoginButton() {
-  // Only add admin button to contact.html
-  const currentPath = window.location.pathname.toLowerCase();
-  const isContactPage = currentPath.includes('contact.html') || 
-                       (currentPath.endsWith('/') && currentPath.includes('contact'));
-  
-  if (!isContactPage) {
-    return; // Don't add admin button to other pages
-  }
-  
-  if (document.getElementById("adminLoginButton")) return;
-
-  const button = document.createElement("button");
-  button.id = "adminLoginButton";
-  button.type = "button";
-  button.className = "admin-login-button";
-  button.textContent = "Admin";
-  button.title = "Open admin login";
-  button.addEventListener("click", () => {
-    if (window.location.pathname.toLowerCase().includes("/admin/")) {
-      requireAdminAccess();
-    } else {
-      openAdminLogin({ redirectToAdmin: true });
-    }
-  });
-
-  document.body.appendChild(button);
+  // Disable admin login button - use navigation button only
+  return;
 }
 
 // Fallback authentication function when Supabase is not available
@@ -717,9 +674,17 @@ function addAdminLoginToNavigation() {
   navLinks.appendChild(adminLink);
 }
 
-attachFooterAdminLink();
-createAdminLoginButton();
-addAdminLoginToNavigation();
+// attachFooterAdminLink(); // Disabled - no footer admin buttons
+// createAdminLoginButton(); // Disabled - no floating admin button
+
+// Only add admin navigation button on contact.html
+const currentPath = window.location.pathname.toLowerCase();
+const isContactPage = currentPath.includes('contact.html') || 
+                     (currentPath.endsWith('/') && currentPath.includes('contact'));
+
+if (isContactPage) {
+  addAdminLoginToNavigation();
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
