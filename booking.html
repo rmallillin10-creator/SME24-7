@@ -78,16 +78,14 @@
           <div class="field"><label for="preferredDate">Preferred Date</label><input id="preferredDate" name="preferredDate" type="date" required></div>
           <div class="field"><label for="preferredTime">Preferred Time</label><input id="preferredTime" name="preferredTime" type="time" required></div>
           <div class="field">
-            <label for="preferredFemaleTherapist">Preferred Female Therapists</label>
-            <select id="preferredFemaleTherapist" name="preferredFemaleTherapist" disabled>
-              <option value="">Choose female therapist</option>
-            </select>
+            <label>Preferred Female Therapists</label>
+            <div id="femaleTherapistSelector" class="therapist-selection"></div>
+            <input type="hidden" id="preferredFemaleTherapist" name="preferredFemaleTherapist">
           </div>
           <div class="field">
-            <label for="preferredMaleTherapist">Preferred Male Therapists</label>
-            <select id="preferredMaleTherapist" name="preferredMaleTherapist" disabled>
-              <option value="">Choose male therapist</option>
-            </select>
+            <label>Preferred Male Therapists</label>
+            <div id="maleTherapistSelector" class="therapist-selection"></div>
+            <input type="hidden" id="preferredMaleTherapist" name="preferredMaleTherapist">
           </div>
           <div class="field"><label for="taxiFare">Taxi Fare</label><input id="taxiFare" name="taxiFare" type="number" min="0" step="1" value="0" required></div>
           <div class="field"><label for="estimatedServiceCost">Estimated Service Cost</label><input id="estimatedServiceCost" name="estimatedServiceCost" readonly></div>

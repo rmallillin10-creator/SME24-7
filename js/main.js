@@ -38,6 +38,8 @@ function usd(value) {
 }
 
 let cachedSettings = null;
+let selectedFemaleTherapistIds = [];
+let selectedMaleTherapistIds = [];
 
 function getSiteSettings() {
   // Return cached settings immediately
@@ -310,40 +312,116 @@ function attachTherapistGallery(scope = document) {
 }
 
 function populateBookingSelect() {
-  const femaleSelect = document.getElementById("preferredFemaleTherapist");
-  const maleSelect = document.getElementById("preferredMaleTherapist");
   const serviceSelect = document.getElementById("preferredService");
-  if (!femaleSelect || !maleSelect) return;
+  const femaleContainer = document.getElementById("femaleTherapistSelector");
+  const maleContainer = document.getElementById("maleTherapistSelector");
+  const femaleCountInput = document.getElementById("femaleTherapistCount");
+  const maleCountInput = document.getElementById("maleTherapistCount");
+  if (!serviceSelect || !femaleContainer || !maleContainer || !femaleCountInput || !maleCountInput) return;
+
   const params = new URLSearchParams(window.location.search);
   const requested = params.get("therapist");
   const therapists = getAllTherapists();
   const settings = getSiteSettings();
-  const option = (therapist) => `<option value="${therapist.id}">${therapist.name} - ${peso(therapist.rate)}</option>`;
 
-  if (serviceSelect) {
-    serviceSelect.innerHTML = `<option value="">Choose service</option>` + settings.services
-      .map((service) => `<option value="${service.name}" data-price="${Number(service.price || 0)}">${service.name}${Number(service.price || 0) ? ` - ${peso(Number(service.price))}` : ""}</option>`)
-      .join("");
-  }
+  serviceSelect.innerHTML = `<option value="">Choose service</option>` + settings.services
+    .map((service) => `<option value="${service.name}" data-price="${Number(service.price || 0)}">${service.name}${Number(service.price || 0) ? ` - ${peso(Number(service.price))}` : ""}</option>`)
+    .join("");
 
-  femaleSelect.innerHTML = `<option value="">Choose female therapist</option>` + therapists
-    .filter((therapist) => therapist.gender === "female")
-    .map(option)
-    .join("");
-  maleSelect.innerHTML = `<option value="">Choose male therapist</option>` + therapists
-    .filter((therapist) => therapist.gender === "male")
-    .map(option)
-    .join("");
+  selectedFemaleTherapistIds = [];
+  selectedMaleTherapistIds = [];
 
   const selectedTherapist = therapists.find((therapist) => therapist.id === requested);
   if (selectedTherapist?.gender === "female") {
-    femaleSelect.value = requested;
-    document.getElementById("femaleTherapistCount").value = "1";
+    selectedFemaleTherapistIds = [requested];
+    femaleCountInput.value = "1";
   }
   if (selectedTherapist?.gender === "male") {
-    maleSelect.value = requested;
-    document.getElementById("maleTherapistCount").value = "1";
+    selectedMaleTherapistIds = [requested];
+    maleCountInput.value = "1";
   }
+
+  renderTherapistSelection("female");
+  renderTherapistSelection("male");
+}
+
+function getTherapistsByIds(ids) {
+  return (Array.isArray(ids) ? ids : String(ids || "").split(",")).map((id) => String(id).trim()).filter(Boolean).map(getTherapistById).filter(Boolean);
+}
+
+function updateTherapistSelectionInputs(gender) {
+  const hiddenInput = document.getElementById(gender === "female" ? "preferredFemaleTherapist" : "preferredMaleTherapist");
+  const selectedIds = gender === "female" ? selectedFemaleTherapistIds : selectedMaleTherapistIds;
+  if (hiddenInput) hiddenInput.value = selectedIds.join(",");
+}
+
+function renderTherapistSelection(gender) {
+  const container = document.getElementById(`${gender}TherapistSelector`);
+  const countInput = document.getElementById(`${gender}TherapistCount`);
+  if (!container || !countInput) return;
+
+  const count = Number(countInput.value || 0);
+  const available = getAllTherapists().filter((therapist) => therapist.gender === gender);
+  const selectedIds = gender === "female" ? selectedFemaleTherapistIds : selectedMaleTherapistIds;
+
+  if (count <= 0) {
+    selectedIds.length = 0;
+    updateTherapistSelectionInputs(gender);
+    container.innerHTML = `<p class="notice">Set ${gender} therapist count above to choose ${gender} therapists.</p>`;
+    return;
+  }
+
+  if (selectedIds.length > count) {
+    selectedIds.splice(count);
+  }
+
+  const canAddMore = selectedIds.length < count;
+  const rows = available.map((therapist) => {
+    const isSelected = selectedIds.includes(therapist.id);
+    return `
+      <div class="therapist-row ${isSelected ? "selected" : ""}">
+        <div class="therapist-meta">
+          <strong>${therapist.name}</strong>
+          <span>${therapist.location || "Metro Manila"} — ${therapist.rate ? peso(therapist.rate) : "Contact for rates"}</span>
+        </div>
+        <div class="therapist-actions">
+          <button type="button" class="therapist-add" data-gender="${gender}" data-id="${therapist.id}" ${isSelected || !canAddMore ? "disabled" : ""}>+</button>
+          <button type="button" class="therapist-remove" data-gender="${gender}" data-id="${therapist.id}" ${!isSelected ? "disabled" : ""}>−</button>
+        </div>
+      </div>`;
+  }).join("");
+
+  container.innerHTML = `<div class="selection-summary">Selected ${selectedIds.length}/${count} ${gender} therapist${count === 1 ? "" : "s"}</div>${rows}`;
+  updateTherapistSelectionInputs(gender);
+
+  container.querySelectorAll(".therapist-add").forEach((button) => {
+    button.addEventListener("click", () => addTherapistSelection(button.dataset.gender, button.dataset.id));
+  });
+  container.querySelectorAll(".therapist-remove").forEach((button) => {
+    button.addEventListener("click", () => removeTherapistSelection(button.dataset.gender, button.dataset.id));
+  });
+}
+
+function addTherapistSelection(gender, therapistId) {
+  if (!therapistId) return;
+  const selectedIds = gender === "female" ? selectedFemaleTherapistIds : selectedMaleTherapistIds;
+  const count = Number(document.getElementById(`${gender}TherapistCount`)?.value || 0);
+  if (!count || selectedIds.includes(therapistId) || selectedIds.length >= count) return;
+  selectedIds.push(therapistId);
+  updateTherapistSelectionInputs(gender);
+  renderTherapistSelection(gender);
+  updateBookingEstimate();
+}
+
+function removeTherapistSelection(gender, therapistId) {
+  if (!therapistId) return;
+  const selectedIds = gender === "female" ? selectedFemaleTherapistIds : selectedMaleTherapistIds;
+  const index = selectedIds.indexOf(therapistId);
+  if (index === -1) return;
+  selectedIds.splice(index, 1);
+  updateTherapistSelectionInputs(gender);
+  renderTherapistSelection(gender);
+  updateBookingEstimate();
 }
 
 function getTherapistById(id) {
@@ -411,14 +489,16 @@ function getBookingEstimate() {
   const settings = getSiteSettings();
   const femaleCount = Number(document.getElementById("femaleTherapistCount")?.value || 0);
   const maleCount = Number(document.getElementById("maleTherapistCount")?.value || 0);
-  const femaleTherapist = getTherapistById(document.getElementById("preferredFemaleTherapist")?.value);
-  const maleTherapist = getTherapistById(document.getElementById("preferredMaleTherapist")?.value);
+  const femaleIds = String(document.getElementById("preferredFemaleTherapist")?.value || "").split(",").map((id) => id.trim()).filter(Boolean);
+  const maleIds = String(document.getElementById("preferredMaleTherapist")?.value || "").split(",").map((id) => id.trim()).filter(Boolean);
+  const femaleTherapists = getTherapistsByIds(femaleIds);
+  const maleTherapists = getTherapistsByIds(maleIds);
   const serviceSelect = document.getElementById("preferredService");
   const selectedService = serviceSelect?.selectedOptions?.[0];
   const serviceBasePhp = Number(selectedService?.dataset?.price || 0);
   const taxiFarePhp = Number(document.getElementById("taxiFare")?.value || settings.taxiFare || 0);
-  const femaleServicePhp = getTherapistPrice(femaleTherapist, femaleCount);
-  const maleServicePhp = getTherapistPrice(maleTherapist, maleCount);
+  const femaleServicePhp = femaleTherapists.reduce((sum, therapist) => sum + getTherapistPrice(therapist, 1), 0);
+  const maleServicePhp = maleTherapists.reduce((sum, therapist) => sum + getTherapistPrice(therapist, 1), 0);
   const servicePhp = serviceBasePhp + femaleServicePhp + maleServicePhp;
   const totalPhp = servicePhp + taxiFarePhp;
   const serviceUsd = servicePhp / PHP_PER_USD;
@@ -460,15 +540,11 @@ function setupBookingForm() {
   const taxiFare = document.getElementById("taxiFare");
   const locationInput = document.getElementById("location");
 
-  // Auto-calculate taxi fare based on location
+  // Auto-calculate taxi fare based on location or admin default
   const updateTaxiFare = () => {
     if (taxiFare && locationInput) {
       const calculatedFare = calculateTaxiFare(locationInput.value);
-      if (calculatedFare > 0) {
-        taxiFare.value = calculatedFare;
-      } else if (Number(taxiFare.value) === 0) {
-        taxiFare.value = settings.taxiFare || 0;
-      }
+      taxiFare.value = calculatedFare || settings.taxiFare || 0;
     }
   };
 
@@ -484,34 +560,26 @@ function setupBookingForm() {
   // Add count-based selection logic
   const femaleCount = document.getElementById("femaleTherapistCount");
   const maleCount = document.getElementById("maleTherapistCount");
-  const femaleSelect = document.getElementById("preferredFemaleTherapist");
-  const maleSelect = document.getElementById("preferredMaleTherapist");
 
-  // Function to handle count changes and enable/disable therapist selection
-  function handleCountChange(countInput, selectInput) {
+  function handleCountChange(countInput, gender) {
     const count = Number(countInput.value) || 0;
-    selectInput.disabled = count <= 0;
+    const selectedIds = gender === "female" ? selectedFemaleTherapistIds : selectedMaleTherapistIds;
     if (count <= 0) {
-      selectInput.value = "";
-      selectInput.multiple = false;
-      selectInput.size = 1;
-    } else if (count === 1) {
-      selectInput.multiple = false;
-      selectInput.size = 1;
-    } else {
-      // For multiple therapists, enable multiple selection
-      selectInput.multiple = true;
-      selectInput.size = Math.min(count + 1, 5); // Show up to 5 options
+      selectedIds.length = 0;
+    } else if (selectedIds.length > count) {
+      selectedIds.splice(count);
     }
+    renderTherapistSelection(gender);
+    updateBookingEstimate();
   }
 
   // Set up event listeners for count-based selection
-  femaleCount?.addEventListener("input", () => handleCountChange(femaleCount, femaleSelect));
-  maleCount?.addEventListener("input", () => handleCountChange(maleCount, maleSelect));
+  femaleCount?.addEventListener("input", () => handleCountChange(femaleCount, "female"));
+  maleCount?.addEventListener("input", () => handleCountChange(maleCount, "male"));
 
   // Initial setup of selection states
-  handleCountChange(femaleCount, femaleSelect);
-  handleCountChange(maleCount, maleSelect);
+  handleCountChange(femaleCount, "female");
+  handleCountChange(maleCount, "male");
 
   ["preferredService", "femaleTherapistCount", "maleTherapistCount", "preferredFemaleTherapist", "preferredMaleTherapist", "taxiFare", "location"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", updateBookingEstimate);
@@ -534,8 +602,21 @@ function setupBookingForm() {
     // Handle multiple therapist selections
     const getTherapistSelections = (name) => {
       const selections = data.getAll(name);
-      return selections.length > 0 ? selections.join(", ") : "";
+      return selections.length > 0 ? selections.join(",") : "";
     };
+
+    const selectedFemaleTherapistIds = getTherapistSelections("preferredFemaleTherapist");
+    const selectedMaleTherapistIds = getTherapistSelections("preferredMaleTherapist");
+    const preferredFemaleTherapistNames = selectedFemaleTherapistIds
+      .split(",")
+      .map((id) => getTherapistById(id)?.name)
+      .filter(Boolean)
+      .join(", ");
+    const preferredMaleTherapistNames = selectedMaleTherapistIds
+      .split(",")
+      .map((id) => getTherapistById(id)?.name)
+      .filter(Boolean)
+      .join(", ");
 
     const payload = {
       timestamp: new Date().toISOString(),
@@ -546,8 +627,10 @@ function setupBookingForm() {
       maleTherapistCount: data.get("maleTherapistCount"),
       preferredDate: data.get("preferredDate"),
       preferredTime: data.get("preferredTime"),
-      preferredFemaleTherapist: getTherapistSelections("preferredFemaleTherapist"),
-      preferredMaleTherapist: getTherapistSelections("preferredMaleTherapist"),
+      preferredFemaleTherapist: selectedFemaleTherapistIds,
+      preferredMaleTherapist: selectedMaleTherapistIds,
+      preferredFemaleTherapistName: preferredFemaleTherapistNames,
+      preferredMaleTherapistName: preferredMaleTherapistNames,
       location: data.get("location"),
       landmark: data.get("landmark"),
       specialRequests: data.get("notes"),
@@ -566,23 +649,52 @@ function setupBookingForm() {
       }
 
       // Check if Google Sheets URL is configured (not a placeholder)
-      if (GOOGLE_SHEETS_WEB_APP_URL.includes('AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t')) {
-        // For testing without Google Sheets, save to localStorage
+      const isPlaceholderUrl = GOOGLE_SHEETS_WEB_APP_URL.includes('AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t');
+      if (isPlaceholderUrl) {
         console.warn("Google Sheets URL is placeholder, saving to localStorage for testing");
         const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
         bookings.push(payload);
         localStorage.setItem("testBookings", JSON.stringify(bookings));
         status.textContent = "✅ Booking saved locally (Google Sheets not configured)";
         form.reset();
+        selectedFemaleTherapistIds = [];
+        selectedMaleTherapistIds = [];
+        renderTherapistSelection("female");
+        renderTherapistSelection("male");
         const taxiFare = document.getElementById("taxiFare");
         if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
         updateBookingEstimate();
         return;
       }
 
-      await saveBookingToGoogleSheets(payload);
+      try {
+        await saveBookingToGoogleSheets(payload);
+      } catch (error) {
+        if (isPlaceholderUrl || error.message.toLowerCase().includes('http error') || error.message.toLowerCase().includes('network')) {
+          console.warn("Google Sheets unavailable, saving booking locally.", error);
+          const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
+          bookings.push(payload);
+          localStorage.setItem("testBookings", JSON.stringify(bookings));
+          status.textContent = "✅ Booking saved locally because Google Sheets could not be reached.";
+          form.reset();
+          selectedFemaleTherapistIds = [];
+          selectedMaleTherapistIds = [];
+          renderTherapistSelection("female");
+          renderTherapistSelection("male");
+          const taxiFare = document.getElementById("taxiFare");
+          if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
+          updateBookingEstimate();
+          return;
+        }
+        throw error;
+      }
+
       status.textContent = "✅ Booking request saved successfully!";
       form.reset();
+      selectedFemaleTherapistIds = [];
+      selectedMaleTherapistIds = [];
+      renderTherapistSelection("female");
+      renderTherapistSelection("male");
       const taxiFare = document.getElementById("taxiFare");
       if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
       updateBookingEstimate();
@@ -673,6 +785,9 @@ async function saveBookingToGoogleSheets(bookingData) {
     
     const result = await response.json();
     console.log('Booking saved to Google Sheets:', result);
+    if (result.error || result.success === false) {
+      throw new Error(result.error || result.message || 'Google Sheets save failed');
+    }
     return result;
   } catch (error) {
     console.error('Error saving booking to Google Sheets:', error);
@@ -727,35 +842,57 @@ async function validateTherapistAvailability(bookingData) {
     maleTherapistName: ''
   };
   
-  // Check female therapist availability
-  if (bookingData.preferredFemaleTherapist && bookingData.femaleTherapistCount > 0) {
-    const femaleTherapist = getTherapistById(bookingData.preferredFemaleTherapist);
-    if (femaleTherapist) {
-      validation.femaleTherapistName = femaleTherapist.name;
-      validation.femaleAvailable = isTherapistAvailable(femaleTherapist, bookingData.preferredDate, bookingData.preferredTime);
-      if (!validation.femaleAvailable) {
-        validation.isValid = false;
-        validation.error = `${femaleTherapist.name} is not available on ${bookingData.preferredDate} at ${bookingData.preferredTime}. Please choose a different time or therapist.`;
-      }
-    } else {
+  const femaleIds = String(bookingData.preferredFemaleTherapist || "").split(",").map((id) => id.trim()).filter(Boolean);
+  if (Number(bookingData.femaleTherapistCount) > 0) {
+    if (femaleIds.length !== Number(bookingData.femaleTherapistCount)) {
       validation.isValid = false;
-      validation.error = 'Female therapist not found';
+      validation.error = `Please select ${bookingData.femaleTherapistCount} female therapist${bookingData.femaleTherapistCount === "1" ? "" : "s"}.`;
+      return validation;
+    }
+
+    if (femaleIds.some((id) => !getTherapistById(id))) {
+      validation.isValid = false;
+      validation.error = "One or more selected female therapists could not be found.";
+      return validation;
+    }
+
+    validation.femaleTherapistName = femaleIds.map((id) => getTherapistById(id)?.name).filter(Boolean).join(", ");
+    validation.femaleAvailable = femaleIds.every((id) => {
+      const therapist = getTherapistById(id);
+      return isTherapistAvailable(therapist, bookingData.preferredDate, bookingData.preferredTime);
+    });
+
+    if (!validation.femaleAvailable) {
+      validation.isValid = false;
+      validation.error = `One or more selected female therapists are unavailable for the requested schedule.`;
+      return validation;
     }
   }
-  
-  // Check male therapist availability
-  if (bookingData.preferredMaleTherapist && bookingData.maleTherapistCount > 0) {
-    const maleTherapist = getTherapistById(bookingData.preferredMaleTherapist);
-    if (maleTherapist) {
-      validation.maleTherapistName = maleTherapist.name;
-      validation.maleAvailable = isTherapistAvailable(maleTherapist, bookingData.preferredDate, bookingData.preferredTime);
-      if (!validation.maleAvailable) {
-        validation.isValid = false;
-        validation.error = `${maleTherapist.name} is not available on ${bookingData.preferredDate} at ${bookingData.preferredTime}. Please choose a different time or therapist.`;
-      }
-    } else {
+
+  const maleIds = String(bookingData.preferredMaleTherapist || "").split(",").map((id) => id.trim()).filter(Boolean);
+  if (Number(bookingData.maleTherapistCount) > 0) {
+    if (maleIds.length !== Number(bookingData.maleTherapistCount)) {
       validation.isValid = false;
-      validation.error = 'Male therapist not found';
+      validation.error = `Please select ${bookingData.maleTherapistCount} male therapist${bookingData.maleTherapistCount === "1" ? "" : "s"}.`;
+      return validation;
+    }
+
+    if (maleIds.some((id) => !getTherapistById(id))) {
+      validation.isValid = false;
+      validation.error = "One or more selected male therapists could not be found.";
+      return validation;
+    }
+
+    validation.maleTherapistName = maleIds.map((id) => getTherapistById(id)?.name).filter(Boolean).join(", ");
+    validation.maleAvailable = maleIds.every((id) => {
+      const therapist = getTherapistById(id);
+      return isTherapistAvailable(therapist, bookingData.preferredDate, bookingData.preferredTime);
+    });
+
+    if (!validation.maleAvailable) {
+      validation.isValid = false;
+      validation.error = `One or more selected male therapists are unavailable for the requested schedule.`;
+      return validation;
     }
   }
   
@@ -1093,8 +1230,10 @@ function addAdminLoginToNavigation() {
 // attachFooterAdminLink(); // Disabled - no footer admin buttons
 // createAdminLoginButton(); // Disabled - no floating admin button
 
-// Add admin navigation button to all pages
-addAdminLoginToNavigation();
+// Add admin navigation button only on contact page
+if (window.location.pathname.toLowerCase().endsWith("contact.html")) {
+  addAdminLoginToNavigation();
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
