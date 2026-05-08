@@ -1,2 +1,0 @@
-?? push_changes.bat
-?? temp_status.txt
