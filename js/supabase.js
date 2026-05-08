@@ -35,37 +35,60 @@ async function initSupabase() {
   return supabase;
 }
 
-// Sign in admin with hardcoded local credentials
-async function adminSignIn(username, password) {
-  console.log("Attempting admin login with:", username); // Debug log
+// Sign in admin with Supabase email authentication
+async function adminSignIn(email, password) {
+  console.log("Attempting admin login with:", email); // Debug log
   
-  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
   const normalizedPassword = String(password || "").trim();
 
-  // Check hardcoded fallback credentials
-  const DEFAULT_ADMIN_USERNAME = "admin";
-  const DEFAULT_ADMIN_PASSWORD = "admin123@";
-
-  console.log("Normalized credentials:", normalizedUsername, normalizedPassword); // Debug log
-
-  if (normalizedUsername === DEFAULT_ADMIN_USERNAME && normalizedPassword === DEFAULT_ADMIN_PASSWORD) {
-    console.log("Login successful"); // Debug log
+  // Initialize Supabase client
+  const client = await initSupabase();
+  if (!client) {
+    console.error("Supabase client not initialized");
     return {
-      data: null,
-      error: null,
-      user: {
-        username: DEFAULT_ADMIN_USERNAME,
-        id: "local-admin",
-        isDefaultAdmin: true
-      }
+      error: { message: "Database connection failed. Please try again." },
+      user: null
     };
   }
 
-  console.log("Login failed - invalid credentials"); // Debug log
-  return {
-    error: { message: "Invalid admin username or password." },
-    user: null
-  };
+  try {
+    // Attempt Supabase authentication
+    const { data, error } = await client.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: normalizedPassword
+    });
+
+    if (error) {
+      console.log("Supabase auth error:", error);
+      return {
+        error: { message: error.message || "Invalid email or password." },
+        user: null
+      };
+    }
+
+    if (!data.user) {
+      console.log("No user returned from Supabase");
+      return {
+        error: { message: "Authentication failed. No user data returned." },
+        user: null
+      };
+    }
+
+    console.log("Supabase login successful for:", data.user.email);
+    return {
+      data: data,
+      error: null,
+      user: data.user
+    };
+
+  } catch (err) {
+    console.error("Login error:", err);
+    return {
+      error: { message: "Login failed: " + err.message },
+      user: null
+    };
+  }
 }
 
 // Fetch site settings from Supabase

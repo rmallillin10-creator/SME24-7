@@ -521,12 +521,12 @@ function openAdminLogin(options = {}) {
       <h2>Admin Login</h2>
       <form id="adminLoginForm">
         <div class="form-group">
-          <label for="adminUsername">Username</label>
-          <input type="text" id="adminUsername" placeholder="admin" autocomplete="username" required>
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" placeholder="admin@example.com" autocomplete="email" required>
         </div>
         <div class="form-group">
           <label for="adminPassword">Password</label>
-          <input type="password" id="adminPassword" placeholder="admin123@" autocomplete="current-password" required>
+          <input type="password" id="adminPassword" placeholder="Your password" autocomplete="current-password" required>
         </div>
         <div class="form-actions">
           <button type="submit">Login</button>
@@ -545,18 +545,19 @@ function openAdminLogin(options = {}) {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const username = modal.querySelector("#adminUsername").value;
+    const email = modal.querySelector("#adminEmail").value;
     const password = modal.querySelector("#adminPassword").value;
 
     statusEl.textContent = "Logging in...";
 
     try {
-      const result = await adminSignIn(username, password);
+      const result = await adminSignIn(email, password);
       console.log("Login result:", result); // Debug log
 
       if (result.user) {
         statusEl.textContent = "Login successful! Redirecting...";
         sessionStorage.setItem("adminLoggedIn", "true");
+        sessionStorage.setItem("adminEmail", result.user.email);
         setTimeout(() => {
           modal.remove();
           document.body.classList.remove("admin-locked");

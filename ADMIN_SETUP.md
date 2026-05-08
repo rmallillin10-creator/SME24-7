@@ -17,6 +17,48 @@ Auth response - user: { ... } error: null
 Login successful for: your-email@example.com
 ```
 
+## How to Login with Supabase Email Authentication
+
+### Step 1: Open Browser Console
+1. Open your site in a browser (e.g., `localhost` or your deployed URL)
+2. Press `F12` to open Developer Tools
+3. Click the "Console" tab
+4. Leave the console open and test the login
+
+### Step 2: Check Console Logs
+When the page loads, you should see these messages in the console:
+```
+initSupabase called. Checking for Supabase library...
+Supabase library loaded after 0 ms
+Supabase client initialized successfully
+DOMContentLoaded event fired. Starting app initialization...
+Supabase initialized, loading settings...
+Site settings loaded.
+App initialization complete!
+```
+
+If you don't see these messages:
+- **Check the Network tab** to ensure `js/supabase.js`, `js/main.js`, and the Supabase CDN script are loading
+- **Check for errors in the console** (red error messages)
+
+### Step 3: Open Admin Login
+You can access admin login in two ways:
+1. **Click "Admin" button** in the navigation menu (red button)
+2. **Use keyboard shortcut**: Press `Ctrl + Alt + Z`
+
+### Step 4: Login with Supabase Email
+1. Enter your **Supabase admin email** (the one you set up in Supabase)
+2. Enter your **Supabase admin password**
+3. Click "Login"
+
+In the console, you should see:
+```
+Attempting admin login with: your-email@example.com
+Supabase login successful for: your-email@example.com
+Login result: { user: { email: "your-email@example.com", ... }, error: null }
+Login successful! Redirecting...
+```
+
 ## Setting Up Supabase Admin Account
 
 ### Step 1: Create Admin User in Supabase

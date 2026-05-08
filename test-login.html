@@ -24,7 +24,8 @@
       results.innerHTML = '<p>Testing login function...</p>';
       
       try {
-        const result = await adminSignIn('admin', 'admin123@');
+        // Test with your Supabase admin email and password
+        const result = await adminSignIn('your-admin-email@example.com', 'your-password');
         results.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
       } catch (error) {
         results.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
