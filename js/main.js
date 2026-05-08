@@ -586,9 +586,9 @@ function openAdminLogin(options = {}) {
       console.log("Admin login attempt with username:", username);
       status.textContent = "Logging in...";
       
-      const { data: authData, error: authError, user } = await adminSignIn(username, password);
+      const result = await adminSignIn(username, password);
       
-      if (user) {
+      if (result.success) {
         setAdminLoggedIn();
         status.textContent = "Login successful! Redirecting...";
         setTimeout(() => {
@@ -606,16 +606,9 @@ function openAdminLogin(options = {}) {
         return;
       }
       
-      if (authError) {
-        const errorMsg = typeof authError === "string"
-          ? authError
-          : authError.message || "Invalid email or password.";
-        console.log("Login failed:", errorMsg);
-        status.textContent = errorMsg;
-        return;
-      }
-
-      status.textContent = "Invalid email or password.";
+      const errorMsg = result.error || "Invalid admin username or password.";
+      console.log("Login failed:", errorMsg);
+      status.textContent = errorMsg;
     } catch (err) {
       console.error("Admin login submit error:", err);
       status.textContent = "Login error. Please try again.";
@@ -645,7 +638,7 @@ function createAdminLoginButton() {
   button.type = "button";
   button.className = "admin-login-button";
   button.textContent = "Admin";
-  button.title = "Open admin login";
+  button.title = "Open admin login (Ctrl+5)";
   button.addEventListener("click", () => {
     if (window.location.pathname.toLowerCase().includes("/admin/")) {
       requireAdminAccess();
@@ -659,6 +652,8 @@ function createAdminLoginButton() {
 
 function setupAdminShortcut() {
   console.log("=== setupAdminShortcut CALLED ===");
+  console.log("Listening for keyboard shortcuts:");
+  console.log("  - Ctrl+5: Open admin login modal");
   console.log("About to attach keydown listener to document");
   
   document.addEventListener("keydown", (event) => {
@@ -666,10 +661,7 @@ function setupAdminShortcut() {
     const tagName = event.target.tagName.toLowerCase();
     const isTextInput = ["input", "textarea"].includes(tagName) || event.target.isContentEditable;
     
-    if (event.ctrlKey && (event.altKey || event.shiftKey)) {
-      console.log(">>> Shortcut attempt: Ctrl+" + (event.altKey ? "Alt" : "Shift") + "+" + key.toUpperCase() + " | shift=" + event.shiftKey + " alt=" + event.altKey + " meta=" + event.metaKey + " tag=" + tagName);
-    }
-    
+    // Check for Ctrl+5 (the only active shortcut)
     const ctrl5 = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey && key === "5";
     
     if (ctrl5) {
@@ -705,7 +697,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   applyBusinessProfile();
   renderOfficialNumber();
-  console.log("Setting up admin shortcut (Ctrl+Alt+Z or Ctrl+Shift+L)...");
+  console.log("Setting up admin shortcut...");
+  console.log("Press Ctrl+5 anywhere on the page to open Admin Login");
   setupAdminShortcut();
   createAdminLoginButton();
   
