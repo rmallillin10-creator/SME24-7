@@ -509,7 +509,7 @@ function setAdminLoggedIn() {
   sessionStorage.setItem("eliteAdminLoggedIn", "true");
 }
 
-function openAdminLogin(options = {}) {
+functiopenAdminLogin(options = {}) {
   console.log("===== openAdminLogin CALLED =====");
   console.log("options:", options);
   
@@ -527,7 +527,7 @@ function openAdminLogin(options = {}) {
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
-      <p class="admin-login-help">Use username <strong>admin</strong> and password <strong>admin123</strong>.</p>
+      <p class="admin-login-help">Enter admin username and password.</p>
       <div class="field">
         <label for="adminUsername">Username</label>
         <input id="adminUsername" name="username" type="text" autocomplete="username" required>
@@ -540,7 +540,7 @@ function openAdminLogin(options = {}) {
         <button type="submit">Login</button>
         <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
       </div>
-      <p class="status" id="adminLoginStatus">Use your admin credentials.</p>
+      <p class="status" id="adminLoginStatus">Enter your admin username and password.</p>
     </form>
   `;
   document.body.appendChild(backdrop);
@@ -630,59 +630,14 @@ function requireAdminAccess(onSuccess) {
   openAdminLogin({ required: true, onSuccess });
 }
 
-function createAdminLoginButton() {
-  if (document.getElementById("adminLoginButton")) return;
+function attachFooterAdminLink() {
+  const adminLink = document.getElementById("contactAdminLink");
+  if (!adminLink) return;
 
-  const button = document.createElement("button");
-  button.id = "adminLoginButton";
-  button.type = "button";
-  button.className = "admin-login-button";
-  button.textContent = "Admin";
-  button.title = "Open admin login (Ctrl+5)";
-  button.addEventListener("click", () => {
-    if (window.location.pathname.toLowerCase().includes("/admin/")) {
-      requireAdminAccess();
-    } else {
-      openAdminLogin({ redirectToAdmin: true });
-    }
+  adminLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    openAdminLogin({ redirectToAdmin: true, required: true });
   });
-
-  document.body.appendChild(button);
-}
-
-function setupAdminShortcut() {
-  console.log("=== setupAdminShortcut CALLED ===");
-  console.log("Listening for keyboard shortcuts:");
-  console.log("  - Ctrl+5: Open admin login modal");
-  console.log("About to attach keydown listener to document");
-  
-  document.addEventListener("keydown", (event) => {
-    const key = event.key.toLowerCase();
-    const tagName = event.target.tagName.toLowerCase();
-    const isTextInput = ["input", "textarea"].includes(tagName) || event.target.isContentEditable;
-    
-    // Check for Ctrl+5 (the only active shortcut)
-    const ctrl5 = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey && key === "5";
-    
-    if (ctrl5) {
-      const shortcutName = "Ctrl+5";
-      console.log(`!!! MATCH: ${shortcutName} !!!`);
-      console.log("isTextInput:", isTextInput);
-      
-      if (isTextInput) {
-        console.log("Skipping - in text input");
-        return;
-      }
-      
-      console.log("Preventing default...");
-      event.preventDefault();
-      
-      console.log("Calling openAdminLogin({ redirectToAdmin: true })");
-      openAdminLogin({ redirectToAdmin: true });
-    }
-  });
-  
-  console.log("Keydown listener attached successfully");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -697,10 +652,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   applyBusinessProfile();
   renderOfficialNumber();
-  console.log("Setting up admin shortcut...");
-  console.log("Press Ctrl+5 anywhere on the page to open Admin Login");
-  setupAdminShortcut();
-  createAdminLoginButton();
+  attachFooterAdminLink();
   
   console.log("App initialization complete!");
 });
