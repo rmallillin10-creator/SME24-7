@@ -35,6 +35,17 @@ function loadBusinessProfileForm() {
   businessLogoPreview.src = business.logo || "../logo/elite%20logo.png";
 }
 
+function loadTaxiFareForm() {
+  const settings = getSiteSettings();
+  const taxiFares = settings.taxiFares || {};
+  
+  if (taxiFareForm) {
+    taxiFareForm.taxiFare.value = taxiFares.default || 0;
+    taxiFareForm.taxiFareCurrency.value = taxiFares.currency || "PHP";
+    taxiFareForm.taxiFareNotes.value = taxiFares.notes || "";
+  }
+}
+
 function readLogoFile(file) {
   return new Promise((resolve, reject) => {
     if (!file) {
@@ -103,12 +114,20 @@ function setupFormSubmissions() {
     localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
     cachedSettings = nextSettings;
     
-    // Also save to Supabase
-    const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
-    if (supabaseResult.error) {
-      businessProfileStatus.textContent = "Business profile saved locally (Supabase sync failed).";
+    // Try to save to Supabase if available, but don't fail if it's not
+    if (typeof saveSiteSettingsToSupabase === 'function') {
+      try {
+        const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
+        if (supabaseResult.error) {
+          businessProfileStatus.textContent = "Business profile saved locally.";
+        } else {
+          businessProfileStatus.textContent = "Business profile saved successfully!";
+        }
+      } catch (e) {
+        businessProfileStatus.textContent = "Business profile saved locally.";
+      }
     } else {
-      businessProfileStatus.textContent = "Business profile saved.";
+      businessProfileStatus.textContent = "Business profile saved locally.";
     }
     
     applyBusinessProfile();
@@ -119,36 +138,31 @@ function setupFormSubmissions() {
     event.preventDefault();
     const data = new FormData(taxiFareForm);
     const settings = getSiteSettings();
+    
     const taxiFares = {
-      makati: Number(data.get("makatiFare")) || 0,
-      bgc: Number(data.get("bgcFare")) || 0,
-      quezonCity: Number(data.get("quezonCityFare")) || 0,
-      pasay: Number(data.get("pasayFare")) || 0,
-      mandaluyong: Number(data.get("mandaluyongFare")) || 0,
-      sanJuan: Number(data.get("sanJuanFare")) || 0,
-      pasig: Number(data.get("pasigFare")) || 0,
-      taguig: Number(data.get("taguigFare")) || 0,
-      pateros: Number(data.get("paterosFare")) || 0,
-      muntinlupa: Number(data.get("muntinlupaFare")) || 0,
-      lasPinas: Number(data.get("lasPinasFare")) || 0,
-      paranaque: Number(data.get("paranaqueFare")) || 0,
-      caloocan: Number(data.get("caloocanFare")) || 0,
-      malabon: Number(data.get("malabonFare")) || 0,
-      navotas: Number(data.get("navotasFare")) || 0,
-      valenzuela: Number(data.get("valenzuelaFare")) || 0,
-      marikina: Number(data.get("marikinaFare")) || 0
+      default: Number(data.get("taxiFare")) || 0,
+      currency: data.get("taxiFareCurrency") || "PHP",
+      notes: data.get("taxiFareNotes").trim()
     };
-
+    
     const nextSettings = { ...settings, taxiFares };
     localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
     cachedSettings = nextSettings;
     
-    // Also save to Supabase
-    const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
-    if (supabaseResult.error) {
-      taxiFareStatus.textContent = "Taxi fares saved locally (Supabase sync failed).";
+    // Try to save to Supabase if available, but don't fail if it's not
+    if (typeof saveSiteSettingsToSupabase === 'function') {
+      try {
+        const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
+        if (supabaseResult.error) {
+          taxiFareStatus.textContent = "Taxi fares saved locally.";
+        } else {
+          taxiFareStatus.textContent = "Taxi fares saved successfully!";
+        }
+      } catch (e) {
+        taxiFareStatus.textContent = "Taxi fares saved locally.";
+      }
     } else {
-      taxiFareStatus.textContent = "Taxi fares saved.";
+      taxiFareStatus.textContent = "Taxi fares saved locally.";
     }
   });
 }
@@ -225,14 +239,8 @@ async function initializeAdminPage() {
   // Initialize admin tabs first
   setupAdminTabs();
   
-  // Try to load from Supabase if available, otherwise use local
-  if (typeof loadSiteSettingsFromSupabase === 'function') {
-    try {
-      await loadSiteSettingsFromSupabase();
-    } catch (e) {
-      console.warn("Supabase not available, using local settings");
-    }
-  }
+  // Use local settings only since Supabase CDN is removed
+  console.log("Admin panel initialized with local storage");
   
   loadBusinessProfileForm();
   loadTaxiFareForm();
