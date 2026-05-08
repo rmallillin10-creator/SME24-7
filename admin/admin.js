@@ -190,15 +190,27 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
 });
 
 async function initializeAdminPage() {
-  await initSupabase();
+  // Initialize admin tabs first
   setupAdminTabs();
-  await loadSiteSettingsFromSupabase();
+  
+  // Try to load from Supabase if available, otherwise use local
+  if (typeof loadSiteSettingsFromSupabase === 'function') {
+    try {
+      await loadSiteSettingsFromSupabase();
+    } catch (e) {
+      console.warn("Supabase not available, using local settings");
+    }
+  }
+  
   loadBusinessProfileForm();
   loadTaxiFareForm();
+  setupImagePreviews();
+  setupFormSubmissions();
   renderTherapistImagePreview();
 }
 
 if (isAdminLoggedIn()) {
+  document.body.classList.remove("admin-locked");
   initializeAdminPage();
 } else {
   requireAdminAccess(() => {
