@@ -429,12 +429,9 @@ function getTherapistById(id) {
 }
 
 // Function to calculate taxi fare based on location
-function calculateTaxiFare(location, therapistCount = 1) {
+function calculateTaxiFarePerTherapist(location) {
   const settings = getSiteSettings();
   const baseFare = Number(settings.taxiFare || 0);
-  const count = Number(therapistCount || 0);
-  if (count <= 0) return 0;
-
   const locationLower = String(location || "").toLowerCase();
   let locationFare = baseFare;
 
@@ -466,7 +463,14 @@ function calculateTaxiFare(location, therapistCount = 1) {
     }
   }
 
-  return locationFare * count;
+  return locationFare;
+}
+
+function calculateTaxiFare(location, therapistCount = 1) {
+  const perTherapistFare = calculateTaxiFarePerTherapist(location);
+  const count = Number(therapistCount || 0);
+  if (count <= 0) return 0;
+  return perTherapistFare * count;
 }
 
 // Increment therapist booking count when viewed
@@ -493,8 +497,10 @@ function getBookingEstimate() {
   const serviceSelect = document.getElementById("preferredService");
   const selectedService = serviceSelect?.selectedOptions?.[0];
   const serviceBasePhp = Number(selectedService?.dataset?.price || 0);
+  const locationValue = document.getElementById("location")?.value || "";
   const taxiFareInput = Number(document.getElementById("taxiFare")?.value || 0);
-  const taxiFarePhp = taxiFareInput || calculateTaxiFare(undefined, totalTherapists);
+  const perTherapistFare = calculateTaxiFarePerTherapist(locationValue);
+  const taxiFarePhp = taxiFareInput || perTherapistFare * totalTherapists;
   const femaleServicePhp = femaleTherapists.reduce((sum, therapist) => sum + getTherapistPrice(therapist, 1), 0);
   const maleServicePhp = maleTherapists.reduce((sum, therapist) => sum + getTherapistPrice(therapist, 1), 0);
   const servicePhp = serviceBasePhp + femaleServicePhp + maleServicePhp;
@@ -536,6 +542,7 @@ function setupBookingForm() {
   populateBookingSelect();
   const settings = getSiteSettings();
   const taxiFare = document.getElementById("taxiFare");
+  const taxiFarePerTherapist = document.getElementById("taxiFarePerTherapist");
   const locationInput = document.getElementById("location");
   const femaleCount = document.getElementById("femaleTherapistCount");
   const maleCount = document.getElementById("maleTherapistCount");
@@ -544,7 +551,9 @@ function setupBookingForm() {
     if (!taxiFare) return;
     const totalTherapists = Number(femaleCount?.value || 0) + Number(maleCount?.value || 0);
     const locationValue = locationInput?.value || "";
+    const perTherapistFare = calculateTaxiFarePerTherapist(locationValue);
     const calculatedFare = calculateTaxiFare(locationValue, totalTherapists);
+    if (taxiFarePerTherapist) taxiFarePerTherapist.value = perTherapistFare;
     taxiFare.value = calculatedFare;
   };
 
@@ -653,7 +662,7 @@ function setupBookingForm() {
         const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
         bookings.push(payload);
         localStorage.setItem("testBookings", JSON.stringify(bookings));
-        status.textContent = "✅ Booking saved locally (Google Sheets not configured)";
+        status.textContent = "Saved";
         form.reset();
         selectedFemaleTherapistIds = [];
         selectedMaleTherapistIds = [];
@@ -673,7 +682,7 @@ function setupBookingForm() {
           const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
           bookings.push(payload);
           localStorage.setItem("testBookings", JSON.stringify(bookings));
-          status.textContent = "✅ Booking saved locally because Google Sheets could not be reached.";
+          status.textContent = "Saved";
           form.reset();
           selectedFemaleTherapistIds = [];
           selectedMaleTherapistIds = [];
@@ -687,7 +696,7 @@ function setupBookingForm() {
         throw error;
       }
 
-      status.textContent = "✅ Booking request saved successfully!";
+      status.textContent = "Saved";
       form.reset();
       selectedFemaleTherapistIds = [];
       selectedMaleTherapistIds = [];
