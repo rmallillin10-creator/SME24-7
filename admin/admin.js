@@ -219,12 +219,41 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
     createdAt: new Date().toISOString()
   };
   
-  // Save to localStorage drafts
-  const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
-  localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapist]));
+  // Save to localStorage drafts with quota handling
+  try {
+    const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+    localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapist]));
+  } catch (quotaError) {
+    if (quotaError.name === 'QuotaExceededError') {
+      // Clear old drafts and try again
+      console.warn("Storage quota exceeded, clearing old drafts...");
+      try {
+        localStorage.removeItem("eliteTherapistDrafts");
+        localStorage.setItem("eliteTherapistDrafts", JSON.stringify([therapist]));
+        therapistDraftStatus.textContent = "✅ Therapist saved (cleared old drafts to make space)";
+      } catch (clearError) {
+        therapistDraftStatus.textContent = "⚠️ Storage full. Please clear browser data or use smaller images.";
+        console.error("Storage completely full:", clearError);
+        return;
+      }
+    } else {
+      therapistDraftStatus.textContent = "⚠️ Error saving therapist: " + quotaError.message;
+      console.error("Storage error:", quotaError);
+      return;
+    }
+  }
   
-  // Also save to Supabase therapists table (not drafts)
-  const supabaseResult = await saveTherapistToSupabase(therapist);
+  // Try to save to Supabase if available, but don't fail if it's not
+  let supabaseResult = { error: "Supabase not available" };
+  if (typeof saveTherapistToSupabase === 'function') {
+    try {
+      supabaseResult = await saveTherapistToSupabase(therapist);
+    } catch (e) {
+      console.warn("Supabase save failed:", e);
+      supabaseResult = { error: e.message };
+    }
+  }
+  
   if (supabaseResult.error) {
     therapistDraftStatus.textContent = "✅ Therapist saved locally (Supabase sync failed)";
   } else {
@@ -238,6 +267,18 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   therapistDraftForm.reset();
   renderTherapistImagePreview();
 });
+
+// Function to clear therapist drafts when storage is full
+function clearTherapistDrafts() {
+  try {
+    localStorage.removeItem("eliteTherapistDrafts");
+    therapistDraftStatus.textContent = "✅ Therapist drafts cleared. Storage space freed.";
+    console.log("Therapist drafts cleared successfully");
+  } catch (error) {
+    console.error("Error clearing drafts:", error);
+    therapistDraftStatus.textContent = "⚠️ Error clearing drafts: " + error.message;
+  }
+}
 
 async function initializeAdminPage() {
   // Initialize admin tabs first
