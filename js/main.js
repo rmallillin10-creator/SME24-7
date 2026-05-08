@@ -614,14 +614,21 @@ function setupBookingForm() {
   updateBookingEstimate();
   updateTaxiFare(); // Initialize taxi fare field
 
+  // Initialize Google Sheets URL field
+  const googleSheetsUrlField = document.getElementById("googleSheetsUrl");
+  if (googleSheetsUrlField) {
+    googleSheetsUrlField.value = getGoogleSheetsWebAppUrl() || "";
+  }
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     updateBookingEstimate();
 
-    const googleSheetsWebAppUrl = getGoogleSheetsWebAppUrl();
-    if (!googleSheetsWebAppUrl) {
-      status.textContent = "Google Sheets web app URL is not configured. Set it in admin settings or js/main.js.";
-      return;
+    const googleSheetsWebAppUrl = (data.get("googleSheetsUrl") || "").trim() || getGoogleSheetsWebAppUrl();
+    const useLocalFallback = !googleSheetsWebAppUrl;
+    if (useLocalFallback) {
+      console.warn("Google Sheets URL is not configured; booking will be saved locally.");
+      status.textContent = "Google Sheets not configured; booking will be saved locally.";
     }
 
     const estimate = getBookingEstimate();
@@ -677,14 +684,17 @@ function setupBookingForm() {
       }
 
       try {
+        if (useLocalFallback) {
+          throw new Error("Google Sheets not configured");
+        }
         await saveBookingToGoogleSheets(payload);
       } catch (error) {
-        if (isPlaceholderUrl || error.message.toLowerCase().includes('http error') || error.message.toLowerCase().includes('network')) {
+        if (useLocalFallback || error.message.toLowerCase().includes('http error') || error.message.toLowerCase().includes('network')) {
           console.warn("Google Sheets unavailable, saving booking locally.", error);
           const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
           bookings.push(payload);
           localStorage.setItem("testBookings", JSON.stringify(bookings));
-          status.textContent = "Saved";
+          status.textContent = useLocalFallback ? "Saved locally (Google Sheets not configured)" : "Saved locally (Google Sheets unavailable)";
           form.reset();
           selectedFemaleTherapistIds = [];
           selectedMaleTherapistIds = [];
