@@ -417,6 +417,13 @@ function editTherapist(therapistId) {
           <div class="field full"><label>Bio</label><textarea id="editBio">${therapist.bio || ''}</textarea></div>
           <div class="field full"><label>Specialties</label><input type="text" id="editSpecialties" value="${(therapist.specialties || []).join(', ')}" placeholder="comma separated"></div>
           <div class="field full"><label>Availability</label><input type="text" id="editAvailability" value="${therapist.availability || ''}"></div>
+          <div class="image-field">
+            <label class="image-upload-label">Profile Picture</label>
+            <div class="image-input-wrapper">
+              <input type="file" id="editImage" accept="image/*">
+              <img class="image-preview" src="${therapist.image || 'images/therapists/default.svg'}" alt="Current profile picture">
+            </div>
+          </div>
         </div>
         <div class="actions">
           <button type="button" onclick="closeEditModal()">Cancel</button>
@@ -433,6 +440,23 @@ function editTherapist(therapistId) {
   document.body.appendChild(modal);
   modal.style.display = 'block';
   
+  // Handle image preview
+  const imageInput = document.getElementById('editImage');
+  const imagePreview = document.querySelector('.image-preview');
+  
+  if (imageInput && imagePreview) {
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imagePreview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+  
   // Handle form submission
   document.getElementById('editTherapistForm').onsubmit = async (e) => {
     e.preventDefault();
@@ -444,7 +468,8 @@ function editTherapist(therapistId) {
       rate: Number(document.getElementById('editRate').value) || 0,
       bio: document.getElementById('editBio').value.trim(),
       specialties: document.getElementById('editSpecialties').value.split(',').map(s => s.trim()).filter(s => s),
-      availability: document.getElementById('editAvailability').value.trim()
+      availability: document.getElementById('editAvailability').value.trim(),
+      image: imagePreview.src !== therapist.image ? imagePreview.src : therapist.image
     };
     
     // Update in localStorage
