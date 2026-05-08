@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Admin Login</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div style="padding: 20px;">
+    <h1>Test Admin Login</h1>
+    <button onclick="testLogin()">Test Login Function</button>
+    <button onclick="openAdminLogin({ redirectToAdmin: true })">Open Login Modal</button>
+    <div id="testResults"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/main.js"></script>
+  
+  <script>
+    async function testLogin() {
+      const results = document.getElementById('testResults');
+      results.innerHTML = '<p>Testing login function...</p>';
+      
+      try {
+        const result = await adminSignIn('admin', 'admin123@');
+        results.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+      } catch (error) {
+        results.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+      }
+    }
+  </script>
+</body>
+</html>

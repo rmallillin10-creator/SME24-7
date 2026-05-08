@@ -37,6 +37,8 @@ async function initSupabase() {
 
 // Sign in admin with hardcoded local credentials
 async function adminSignIn(username, password) {
+  console.log("Attempting admin login with:", username); // Debug log
+  
   const normalizedUsername = String(username || "").trim().toLowerCase();
   const normalizedPassword = String(password || "").trim();
 
@@ -44,7 +46,10 @@ async function adminSignIn(username, password) {
   const DEFAULT_ADMIN_USERNAME = "admin";
   const DEFAULT_ADMIN_PASSWORD = "admin123@";
 
+  console.log("Normalized credentials:", normalizedUsername, normalizedPassword); // Debug log
+
   if (normalizedUsername === DEFAULT_ADMIN_USERNAME && normalizedPassword === DEFAULT_ADMIN_PASSWORD) {
+    console.log("Login successful"); // Debug log
     return {
       data: null,
       error: null,
@@ -56,6 +61,7 @@ async function adminSignIn(username, password) {
     };
   }
 
+  console.log("Login failed - invalid credentials"); // Debug log
   return {
     error: { message: "Invalid admin username or password." },
     user: null

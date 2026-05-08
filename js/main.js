@@ -550,22 +550,31 @@ function openAdminLogin(options = {}) {
 
     statusEl.textContent = "Logging in...";
 
-    const result = await adminSignIn(username, password);
+    try {
+      const result = await adminSignIn(username, password);
+      console.log("Login result:", result); // Debug log
 
-    if (result.user) {
-      sessionStorage.setItem("adminLoggedIn", "true");
-      modal.remove();
-      document.body.classList.remove("admin-locked");
-      if (redirectToAdmin) {
-        const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
-          ? "add-therapist.html"
-          : "admin/add-therapist.html";
-        window.location.href = adminPageUrl;
+      if (result.user) {
+        statusEl.textContent = "Login successful! Redirecting...";
+        sessionStorage.setItem("adminLoggedIn", "true");
+        setTimeout(() => {
+          modal.remove();
+          document.body.classList.remove("admin-locked");
+          if (redirectToAdmin) {
+            const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
+              ? "add-therapist.html"
+              : "admin/add-therapist.html";
+            window.location.href = adminPageUrl;
+          } else {
+            onSuccess?.();
+          }
+        }, 500);
       } else {
-        onSuccess?.();
+        statusEl.textContent = `Login failed: ${result.error?.message || 'Invalid credentials'}`;
       }
-    } else {
-      statusEl.textContent = `Login failed: ${result.error?.message || 'Invalid credentials'}`;
+    } catch (error) {
+      console.error("Login error:", error);
+      statusEl.textContent = `Login error: ${error.message}`;
     }
   });
 
