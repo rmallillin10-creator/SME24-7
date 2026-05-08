@@ -586,6 +586,7 @@ function setupBookingForm() {
     document.getElementById(id)?.addEventListener("change", updateBookingEstimate);
   });
   updateBookingEstimate();
+  updateTaxiFare(); // Initialize taxi fare field
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -605,8 +606,8 @@ function setupBookingForm() {
       return selections.length > 0 ? selections.join(",") : "";
     };
 
-    const selectedFemaleTherapistIds = getTherapistSelections("preferredFemaleTherapist");
-    const selectedMaleTherapistIds = getTherapistSelections("preferredMaleTherapist");
+    let selectedFemaleTherapistIds = getTherapistSelections("preferredFemaleTherapist");
+    let selectedMaleTherapistIds = getTherapistSelections("preferredMaleTherapist");
     const preferredFemaleTherapistNames = selectedFemaleTherapistIds
       .split(",")
       .map((id) => getTherapistById(id)?.name)
