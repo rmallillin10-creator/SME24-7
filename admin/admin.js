@@ -27,6 +27,8 @@ function loadBusinessProfileForm() {
   businessProfileForm.businessName.value = business.name || "";
   businessProfileForm.businessAddress.value = business.address || "";
   businessProfileForm.businessMapsLink.value = business.mapsLink || "";
+  businessProfileForm.serviceType.value = business.serviceType || "Professional whole body massage and sensual massage booking service.";
+  businessProfileForm.serviceArea.value = business.serviceArea || "Metro Manila, including Makati, BGC, Pasay, Quezon City, Ortigas, and Manila.";
   businessProfileForm.viber.value = settings.contacts?.viber || "";
   businessProfileForm.wechat.value = settings.contacts?.wechat || "";
   businessProfileForm.kakaotalk.value = settings.contacts?.kakaotalk || "";
@@ -98,6 +100,8 @@ function setupFormSubmissions() {
         name: data.get("businessName").trim(),
         address: data.get("businessAddress").trim(),
         mapsLink: data.get("businessMapsLink").trim(),
+        serviceType: data.get("serviceType").trim(),
+        serviceArea: data.get("serviceArea").trim(),
         logo: uploadedLogo || currentSettings.business.logo || ""
       },
       // Remove fixed services pricing - pricing will be handled by individual therapists
