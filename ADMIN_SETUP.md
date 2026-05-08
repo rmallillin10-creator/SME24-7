@@ -1,50 +1,14 @@
 # Admin Setup & Login Guide
 
-## Shortcut Key
-**Press `Ctrl + Alt + Z` anywhere on the site to open the admin login modal.**
+## Accessing the Admin Panel
+To access the admin settings, scroll to the bottom of any page and click the **Admin** link in the footer. If you are not logged in, the system will automatically prompt you for your credentials.
 
-## How to Debug if Shortcut Isn't Working
-
-### Step 1: Open Browser Console
-1. Open your site in a browser (e.g., `localhost` or your deployed URL)
-2. Press `F12` to open Developer Tools
-3. Click the "Console" tab
-4. Leave the console open and test the shortcut
-
-### Step 2: Check Console Logs
-When the page loads, you should see these messages in the console:
-```
-initSupabase called. Checking for Supabase library...
-Supabase library loaded after 0 ms
-Supabase client initialized successfully
-DOMContentLoaded event fired. Starting app initialization...
-Supabase initialized, loading settings...
-Site settings loaded.
-Setting up admin shortcut (Ctrl+Alt+Z)...
-Admin shortcut setup initialized. Use Ctrl+Alt+Z to login.
-App initialization complete!
-```
-
-If you don't see these messages:
-- **Check the Network tab** to ensure `js/supabase.js`, `js/main.js`, and the Supabase CDN script are loading
-- **Check for errors in the console** (red error messages)
-
-### Step 3: Test the Shortcut
-1. With the console open, press `Ctrl + Alt + Z`
-2. You should see in the console:
-   ```
-   Ctrl+Alt pressed with key: z
-   Admin shortcut triggered! isTextInput= false
-   Opening admin login...
-   ```
-3. The admin login modal should appear on screen
-
-### Step 4: Login
+### Logging In
 1. Enter your Supabase admin email
 2. Enter your Supabase admin password
 3. Click "Login"
 
-In the console, you should see:
+When successful, the console (F12) will show:
 ```
 Admin login attempt with email: your-email@example.com
 adminSignIn called with email: your-email@example.com

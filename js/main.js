@@ -618,7 +618,11 @@ function attachFooterAdminLink() {
 
   adminLink.addEventListener("click", (event) => {
     event.preventDefault();
-    openAdminLogin({ redirectToAdmin: true, required: true });
+    // Redirect directly to the admin page, which will handle login if necessary
+    const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
+      ? "add-therapist.html" // If already in admin folder, just go to add-therapist.html
+      : "admin/add-therapist.html"; // Otherwise, go to the admin folder
+    window.location.href = adminPageUrl;
   });
 }
 
@@ -648,18 +652,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   attachFooterAdminLink();
   
   console.log("Website fully initialized.");
-});
-
-// Set up admin shortcut (Ctrl+Alt+Z)
-window.addEventListener("keydown", (event) => {
-  if (event.ctrlKey && event.altKey && event.key.toLowerCase() === "z") {
-    const isTextInput = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) || 
-                        document.activeElement.isContentEditable;
-    
-    if (!isTextInput) {
-      event.preventDefault();
-      console.log("Admin shortcut triggered!");
-      openAdminLogin();
-    }
-  }
 });
