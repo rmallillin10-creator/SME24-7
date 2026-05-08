@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Replace yourdomain.com with your real published domain before indexing
+Sitemap: https://yourdomain.com/sitemap.xml
