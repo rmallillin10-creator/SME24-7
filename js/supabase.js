@@ -5,10 +5,22 @@ const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 // Initialize Supabase client (requires @supabase/supabase-js library)
 let supabase = null;
 
+// Prevent multiple script loading issues
+if (window.supabaseLoaded) {
+  console.warn("Supabase script already loaded");
+} else {
+  window.supabaseLoaded = true;
+}
+
 async function initSupabase() {
+  // If already initialized, return existing client
+  if (supabase) {
+    return supabase;
+  }
+
   const waitForSupabase = async () => {
     for (let i = 0; i < 20; i += 1) {
-      if (typeof window.supabase !== "undefined") {
+      if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -19,20 +31,25 @@ async function initSupabase() {
 
   const loaded = await waitForSupabase();
   if (!loaded) {
-    console.error("Supabase library not loaded. Check CDN.");
+    console.error("Supabase library not loaded. Check CDN or browser tracking prevention.");
     return null;
   }
   
-  if (!supabase) {
-    try {
-      const { createClient } = window.supabase;
-      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (err) {
-      console.error("Error initializing Supabase client:", err);
-      return null;
-    }
+  try {
+    const { createClient } = window.supabase;
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+    console.log("Supabase client initialized successfully");
+    return supabase;
+  } catch (err) {
+    console.error("Error initializing Supabase client:", err);
+    return null;
   }
-  return supabase;
 }
 
 // Sign in admin with Supabase email authentication

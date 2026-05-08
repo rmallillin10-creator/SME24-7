@@ -551,6 +551,11 @@ function openAdminLogin(options = {}) {
     statusEl.textContent = "Logging in...";
 
     try {
+      // Check if adminSignIn function is available
+      if (typeof adminSignIn !== 'function') {
+        throw new Error("Authentication system not loaded. Please refresh the page.");
+      }
+
       const result = await adminSignIn(email, password);
       console.log("Login result:", result); // Debug log
 
@@ -666,24 +671,33 @@ addAdminLoginToNavigation();
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // Initialize Supabase and load settings
-    await initSupabase();
-    await loadSiteSettingsFromSupabase();
-    
-    // Load therapists from Supabase and merge with local data
-    const cloudTherapists = await fetchTherapistsFromSupabase();
-    if (cloudTherapists && cloudTherapists.length > 0) {
-      // Map Supabase snake_case fields to our camelCase app structure
-      const formatted = cloudTherapists.map(t => ({
-        ...t,
-        mapUrl: t.map_url // Ensure mapping for the property used in main.js
-      }));
+    // Initialize Supabase and load settings (with fallback)
+    if (typeof initSupabase === 'function') {
+      await initSupabase();
       
-      // Replace or merge with static data
-      const existingIds = new Set(therapistData.map(t => t.id));
-      formatted.forEach(t => {
-        if (!existingIds.has(t.id)) therapistData.push(t);
-      });
+      if (typeof loadSiteSettingsFromSupabase === 'function') {
+        await loadSiteSettingsFromSupabase();
+      }
+      
+      // Load therapists from Supabase and merge with local data
+      if (typeof fetchTherapistsFromSupabase === 'function') {
+        const cloudTherapists = await fetchTherapistsFromSupabase();
+        if (cloudTherapists && cloudTherapists.length > 0) {
+          // Map Supabase snake_case fields to our camelCase app structure
+          const formatted = cloudTherapists.map(t => ({
+            ...t,
+            mapUrl: t.map_url // Ensure mapping for the property used in main.js
+          }));
+          
+          // Replace or merge with static data
+          const existingIds = new Set(therapistData.map(t => t.id));
+          formatted.forEach(t => {
+            if (!existingIds.has(t.id)) therapistData.push(t);
+          });
+        }
+      }
+    } else {
+      console.warn("Supabase functions not available, using local data only");
     }
 
     applyBusinessProfile();
