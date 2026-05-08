@@ -2,15 +2,15 @@
 const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 
-// Initialize Supabase client (requires @supabase/supabase-js library)
-let supabase = null;
-
 // Prevent multiple script loading issues
 if (window.supabaseLoaded) {
   console.warn("Supabase script already loaded");
 } else {
   window.supabaseLoaded = true;
 }
+
+// Initialize Supabase client (requires @supabase/supabase-js library)
+let supabase = null;
 
 async function initSupabase() {
   // If already initialized, return existing client

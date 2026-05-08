@@ -89,7 +89,7 @@ Alternatively, in **Table Editor**, click on `admin_users` table and manually ad
 ## Troubleshooting
 
 ### Console shows "Supabase library not loaded"
-- Check that the CDN script loads: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
+- Check that the CDN script loads: https://unpkg.com/@supabase/supabase-js@2
 - Check the Network tab for 404 or timeout errors
 - Try refreshing the page
 
