@@ -341,26 +341,25 @@ function renderTherapistLists() {
       const isMostBooked = hasAnyBookings && index === 0;
       const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
       
-      return `
-      <div class="therapist-item ${isMostBooked ? 'most-booked' : ''} ${isRandomRank ? 'random-ranked' : ''}" data-id="${therapist.id}">
-        <div class="therapist-avatar-container">
-          <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
-          ${isMostBooked ? '<div class="crown-icon">👑</div>' : ''}
-          ${isRandomRank ? '<div class="random-icon">🎲</div>' : ''}
-        </div>
-        <div class="therapist-info">
-          <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
-          <div class="therapist-details">
-            Rate: ${therapist.rate ? '₱' + therapist.rate : 'Contact for rates'} | 
-            ${therapist.location || 'Metro Manila'} | 
-            Bookings: ${bookings[therapist.id] || 0}
-          </div>
-        </div>
-        <div class="therapist-actions">
-          <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
-          <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
-        </div>
-      `;
+      return '<div class="therapist-item ' + (isMostBooked ? 'most-booked' : '') + ' ' + (isRandomRank ? 'random-ranked' : '') + '" data-id="' + therapist.id + '">' +
+        '        <div class="therapist-avatar-container">' +
+        '          <img class="therapist-avatar" src="' + (therapist.image || 'images/therapists/default.svg') + '" alt="' + therapist.name + '">' +
+        '          ' + (isMostBooked ? '<div class="crown-icon">👑</div>' : '') +
+        '          ' + (isRandomRank ? '<div class="random-icon">🎲</div>' : '') +
+        '        </div>' +
+        '        <div class="therapist-info">' +
+        '          <div class="therapist-name" onclick="editTherapist(\'' + therapist.id + '\')">' + therapist.name + '</div>' +
+        '          <div class="therapist-details">' +
+        '            Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + ' | ' +
+        '            ' + (therapist.location || 'Metro Manila') + ' | ' +
+        '            Bookings: ' + (bookings[therapist.id] || 0) +
+        '          </div>' +
+        '        </div>' +
+        '        <div class="therapist-actions">' +
+        '          <button class="edit-btn" onclick="editTherapist(\'' + therapist.id + '\')">Edit</button>' +
+        '          <button class="delete-btn" onclick="deleteTherapist(\'' + therapist.id + '\')">Delete</button>' +
+        '        </div>' +
+        '      </div>';
     }).join('');
   }
   
@@ -388,6 +387,7 @@ function renderTherapistLists() {
           <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
           <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
         </div>
+      </div>
       `;
     }).join('');
   }
