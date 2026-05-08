@@ -410,11 +410,35 @@ function setupBookingForm() {
   const taxiFare = document.getElementById("taxiFare");
   if (taxiFare && Number(taxiFare.value) === 0) taxiFare.value = settings.taxiFare || 0;
 
+  // Add count-based selection logic
+  const femaleCount = document.getElementById("femaleTherapistCount");
+  const maleCount = document.getElementById("maleTherapistCount");
+  const femaleSelect = document.getElementById("preferredFemaleTherapist");
+  const maleSelect = document.getElementById("preferredMaleTherapist");
+
+  // Function to handle count changes and enable/disable therapist selection
+  function handleCountChange(countInput, selectInput) {
+    const count = Number(countInput.value) || 0;
+    selectInput.disabled = count <= 0;
+    if (count <= 0) {
+      selectInput.value = "";
+    }
+  }
+
+  // Set up event listeners for count-based selection
+  femaleCount?.addEventListener("input", () => handleCountChange(femaleCount, femaleSelect));
+  maleCount?.addEventListener("input", () => handleCountChange(maleCount, maleSelect));
+
+  // Initial setup of selection states
+  handleCountChange(femaleCount, femaleSelect);
+  handleCountChange(maleCount, maleSelect);
+
   ["preferredService", "femaleTherapistCount", "maleTherapistCount", "preferredFemaleTherapist", "preferredMaleTherapist", "taxiFare"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", updateBookingEstimate);
     document.getElementById(id)?.addEventListener("change", updateBookingEstimate);
   });
   updateBookingEstimate();
+}
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -449,6 +473,12 @@ function setupBookingForm() {
 
     status.textContent = "Sending booking request...";
     try {
+      // Validate therapist availability before saving
+      const validation = await validateTherapistAvailability(payload);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
       await saveBookingToGoogleSheets(payload);
       status.textContent = "✅ Booking request saved successfully!";
       form.reset();
@@ -467,6 +497,179 @@ function setupBookingForm() {
       status.textContent = "⚠️ Booking could not be sent. Please try again or contact support.";
     }
   });
+}
+
+// Enhanced function to save booking to Google Sheets with auto-adjusting headers
+async function saveBookingToGoogleSheets(bookingData) {
+  try {
+    // Ensure all required fields are present with proper formatting
+    const enhancedBookingData = {
+      // Timestamp
+      timestamp: bookingData.timestamp || new Date().toISOString(),
+      
+      // Customer Information
+      fullname: bookingData.fullname || '',
+      mobileNumber: bookingData.mobileNumber || '',
+      
+      // Booking Details
+      preferredService: bookingData.preferredService || '',
+      preferredDate: bookingData.preferredDate || '',
+      preferredTime: bookingData.preferredTime || '',
+      
+      // Therapist Selection with validation
+      preferredFemaleTherapist: bookingData.preferredFemaleTherapist || '',
+      femaleTherapistCount: bookingData.femaleTherapistCount || '0',
+      preferredFemaleTherapistName: bookingData.preferredFemaleTherapistName || '',
+      femaleTherapistAvailable: bookingData.femaleTherapistAvailable,
+      
+      preferredMaleTherapist: bookingData.preferredMaleTherapist || '',
+      maleTherapistCount: bookingData.maleTherapistCount || '0',
+      preferredMaleTherapistName: bookingData.preferredMaleTherapistName || '',
+      maleTherapistAvailable: bookingData.maleTherapistAvailable,
+      
+      // Location Details
+      location: bookingData.location || '',
+      landmark: bookingData.landmark || '',
+      
+      // Pricing Information
+      estimatedServiceCost: bookingData.estimatedServiceCost || '',
+      taxiFare: bookingData.taxiFare || '',
+      totalEstimate: bookingData.totalEstimate || '',
+      
+      // Additional Information
+      specialRequests: bookingData.specialRequests || '',
+      bookingStatus: 'Pending',
+      source: 'Website Booking',
+      
+      // Auto-generated fields
+      bookingId: 'BK' + Date.now(),
+      dateSubmitted: new Date().toLocaleString('en-PH', { 
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    };
+    
+    const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'saveBooking',
+        data: enhancedBookingData,
+        autoAdjustHeaders: true // Enable auto-adjusting headers
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('Booking saved to Google Sheets:', result);
+    return result;
+  } catch (error) {
+    console.error('Error saving booking to Google Sheets:', error);
+    throw error;
+  }
+}
+
+// Function to validate therapist availability
+async function validateTherapistAvailability(bookingData) {
+  const validation = {
+    isValid: true,
+    error: '',
+    femaleAvailable: true,
+    maleAvailable: true,
+    femaleTherapistName: '',
+    maleTherapistName: ''
+  };
+  
+  // Check female therapist availability
+  if (bookingData.preferredFemaleTherapist && bookingData.femaleTherapistCount > 0) {
+    const femaleTherapist = getTherapistById(bookingData.preferredFemaleTherapist);
+    if (femaleTherapist) {
+      validation.femaleTherapistName = femaleTherapist.name;
+      validation.femaleAvailable = isTherapistAvailable(femaleTherapist, bookingData.preferredDate, bookingData.preferredTime);
+      if (!validation.femaleAvailable) {
+        validation.isValid = false;
+        validation.error = `${femaleTherapist.name} is not available on ${bookingData.preferredDate} at ${bookingData.preferredTime}. Please choose a different time or therapist.`;
+      }
+    } else {
+      validation.isValid = false;
+      validation.error = 'Female therapist not found';
+    }
+  }
+  
+  // Check male therapist availability
+  if (bookingData.preferredMaleTherapist && bookingData.maleTherapistCount > 0) {
+    const maleTherapist = getTherapistById(bookingData.preferredMaleTherapist);
+    if (maleTherapist) {
+      validation.maleTherapistName = maleTherapist.name;
+      validation.maleAvailable = isTherapistAvailable(maleTherapist, bookingData.preferredDate, bookingData.preferredTime);
+      if (!validation.maleAvailable) {
+        validation.isValid = false;
+        validation.error = `${maleTherapist.name} is not available on ${bookingData.preferredDate} at ${bookingData.preferredTime}. Please choose a different time or therapist.`;
+      }
+    } else {
+      validation.isValid = false;
+      validation.error = 'Male therapist not found';
+    }
+  }
+  
+  return validation;
+}
+
+// Function to check if therapist is available
+function isTherapistAvailable(therapist, date, time) {
+  if (!therapist || !therapist.availability) return true;
+  
+  const availability = therapist.availability.toLowerCase();
+  const bookingDateTime = new Date(`${date} ${time}`);
+  const bookingHour = bookingDateTime.getHours();
+  const bookingDay = bookingDateTime.getDay();
+  
+  // Check for 24/7 availability
+  if (availability.includes('24 hours') || availability.includes('daily')) {
+    return true;
+  }
+  
+  // Check for specific time ranges
+  if (availability.includes('today')) {
+    // Available today - check if booking time is reasonable
+    return bookingHour >= 12 && bookingHour <= 23; // 12 PM to 11 PM
+  }
+  
+  // Check for weekday availability
+  if (availability.includes('weekdays') && bookingDay >= 1 && bookingDay <= 5) {
+    return true;
+  }
+  
+  // Parse specific time ranges like "2 PM - 11 PM"
+  const timeRangeMatch = availability.match(/(\d+)\s*(am|pm)\s*-\s*(\d+)\s*(am|pm)/i);
+  if (timeRangeMatch) {
+    const startHour = convertTo24Hour(parseInt(timeRangeMatch[1]), timeRangeMatch[2]);
+    const endHour = convertTo24Hour(parseInt(timeRangeMatch[3]), timeRangeMatch[4]);
+    return bookingHour >= startHour && bookingHour <= endHour;
+  }
+  
+  return true; // Default to available if no specific constraints found
+}
+
+// Helper function to convert 12-hour to 24-hour format
+function convertTo24Hour(hour, period) {
+  if (period.toLowerCase() === 'pm' && hour !== 12) {
+    return hour + 12;
+  }
+  if (period.toLowerCase() === 'am' && hour === 12) {
+    return 0;
+  }
+  return hour;
 }
 
 function getOfficialContact() {
