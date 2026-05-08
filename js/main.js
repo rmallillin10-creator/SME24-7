@@ -155,6 +155,11 @@ function renderFeaturedTherapists(targetId, count = 4) {
   if (!target) return;
 
   const featured = shuffleArray(getAllTherapists().filter((therapist) => therapist.featured));
+  if (featured.length === 0) {
+    target.innerHTML = `<p class="notice">No therapists available yet. Check back soon!</p>`;
+    return;
+  }
+  
   target.innerHTML = featured.slice(0, count).map((therapist) => {
     const displayImage = therapist.image || (therapist.images && therapist.images.length > 0 ? therapist.images[0] : 'images/therapists/default.svg');
     return `

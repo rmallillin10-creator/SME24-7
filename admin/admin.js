@@ -378,59 +378,67 @@ function renderTherapistLists() {
   const maleList = document.getElementById('maleTherapistsList');
   
   if (femaleList) {
-    femaleList.innerHTML = femaleTherapists.map((therapist, index) => {
-      const isMostBooked = hasAnyBookings && index === 0;
-      const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
-      
-      return '<div class="therapist-item ' + (isMostBooked ? 'most-booked' : '') + ' ' + (isRandomRank ? 'random-ranked' : '') + '" data-id="' + therapist.id + '">' +
-        '        <div class="therapist-avatar-container">' +
-        '          <img class="therapist-avatar" src="' + (therapist.image || 'images/therapists/default.svg') + '" alt="' + therapist.name + '">' +
-        '          ' + (isMostBooked ? '<div class="crown-icon">👑</div>' : '') +
-        '          ' + (isRandomRank ? '<div class="random-icon">🎲</div>' : '') +
-        '        </div>' +
-        '        <div class="therapist-info">' +
-        '          <div class="therapist-name" onclick="editTherapist(\'' + therapist.id + '\')">' + therapist.name + '</div>' +
-        '          <div class="therapist-details">' +
-        '            Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + ' | ' +
-        '            ' + (therapist.location || 'Metro Manila') + ' | ' +
-        '            Bookings: ' + (bookings[therapist.id] || 0) +
-        '          </div>' +
-        '        </div>' +
-        '        <div class="therapist-actions">' +
-        '          <button class="edit-btn" onclick="editTherapist(\'' + therapist.id + '\')">Edit</button>' +
-        '          <button class="delete-btn" onclick="deleteTherapist(\'' + therapist.id + '\')">Delete</button>' +
-        '        </div>' +
-        '      </div>';
-    }).join('');
+    if (femaleTherapists.length === 0) {
+      femaleList.innerHTML = '<p class="notice">No female therapists added yet.</p>';
+    } else {
+      femaleList.innerHTML = femaleTherapists.map((therapist, index) => {
+        const isMostBooked = hasAnyBookings && index === 0;
+        const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
+        
+        return '<div class="therapist-item ' + (isMostBooked ? 'most-booked' : '') + ' ' + (isRandomRank ? 'random-ranked' : '') + '" data-id="' + therapist.id + '">' +
+          '        <div class="therapist-avatar-container">' +
+          '          <img class="therapist-avatar" src="' + (therapist.image || 'images/therapists/default.svg') + '" alt="' + therapist.name + '">' +
+          '          ' + (isMostBooked ? '<div class="crown-icon">👑</div>' : '') +
+          '          ' + (isRandomRank ? '<div class="random-icon">🎲</div>' : '') +
+          '        </div>' +
+          '        <div class="therapist-info">' +
+          '          <div class="therapist-name" onclick="editTherapist(\'' + therapist.id + '\')">' + therapist.name + '</div>' +
+          '          <div class="therapist-details">' +
+          '            Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + ' | ' +
+          '            ' + (therapist.location || 'Metro Manila') + ' | ' +
+          '            Bookings: ' + (bookings[therapist.id] || 0) +
+          '          </div>' +
+          '        </div>' +
+          '        <div class="therapist-actions">' +
+          '          <button class="edit-btn" onclick="editTherapist(\'' + therapist.id + '\')">Edit</button>' +
+          '          <button class="delete-btn" onclick="deleteTherapist(\'' + therapist.id + '\')">Delete</button>' +
+          '        </div>' +
+          '      </div>';
+      }).join('');
+    }
   }
   
   if (maleList) {
-    maleList.innerHTML = maleTherapists.map((therapist, index) => {
-      const isMostBooked = hasAnyBookings && index === 0;
-      const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
-      
-      return `
-      <div class="therapist-item ${isMostBooked ? 'most-booked' : ''} ${isRandomRank ? 'random-ranked' : ''}" data-id="${therapist.id}">
-        <div class="therapist-avatar-container">
-          <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
-          ${isMostBooked ? '<div class="crown-icon">👑</div>' : ''}
-          ${isRandomRank ? '<div class="random-icon">🎲</div>' : ''}
-        </div>
-        <div class="therapist-info">
-          <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
-          <div class="therapist-details">
-            Rate: ${therapist.rate ? '₱' + therapist.rate : 'Contact for rates'} | 
-            ${therapist.location || 'Metro Manila'} | 
-            Bookings: ${bookings[therapist.id] || 0}
+    if (maleTherapists.length === 0) {
+      maleList.innerHTML = '<p class="notice">No male therapists added yet.</p>';
+    } else {
+      maleList.innerHTML = maleTherapists.map((therapist, index) => {
+        const isMostBooked = hasAnyBookings && index === 0;
+        const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
+        
+        return `
+        <div class="therapist-item ${isMostBooked ? 'most-booked' : ''} ${isRandomRank ? 'random-ranked' : ''}" data-id="${therapist.id}">
+          <div class="therapist-avatar-container">
+            <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
+            ${isMostBooked ? '<div class="crown-icon">👑</div>' : ''}
+            ${isRandomRank ? '<div class="random-icon">🎲</div>' : ''}
+          </div>
+          <div class="therapist-info">
+            <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
+            <div class="therapist-details">
+              Rate: ${therapist.rate ? '₱' + therapist.rate : 'Contact for rates'} | 
+              ${therapist.location || 'Metro Manila'} | 
+              Bookings: ${bookings[therapist.id] || 0}
+            </div>
+          </div>
+          <div class="therapist-actions">
+            <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
+            <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
           </div>
         </div>
-        <div class="therapist-actions">
-          <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
-          <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
-        </div>
-      </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
+    }
   }
 }
 
