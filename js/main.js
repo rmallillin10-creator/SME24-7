@@ -614,18 +614,12 @@ function setupBookingForm() {
   updateBookingEstimate();
   updateTaxiFare(); // Initialize taxi fare field
 
-  // Initialize Google Sheets URL field
-  const googleSheetsUrlField = document.getElementById("googleSheetsUrl");
-  if (googleSheetsUrlField) {
-    googleSheetsUrlField.value = getGoogleSheetsWebAppUrl() || "";
-  }
-
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     updateBookingEstimate();
 
     const data = new FormData(form);
-    const googleSheetsWebAppUrl = (data.get("googleSheetsUrl") || "").trim() || getGoogleSheetsWebAppUrl();
+    const googleSheetsWebAppUrl = getGoogleSheetsWebAppUrl();
     const useLocalFallback = !googleSheetsWebAppUrl;
     if (useLocalFallback) {
       console.warn("Google Sheets URL is not configured; booking will be saved locally.");
