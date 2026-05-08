@@ -10,6 +10,38 @@ const therapistSlidesInput = document.getElementById("therapistSlides");
 const therapistImagePreview = document.getElementById("therapistImagePreview");
 const therapistDraftStatus = document.getElementById("therapistDraftStatus");
 
+const DEFAULT_THERAPIST_RATE_BY_GENDER = {
+  female: 2400,
+  male: 2200
+};
+
+function getDefaultTherapistRate(gender) {
+  return DEFAULT_THERAPIST_RATE_BY_GENDER[gender] || DEFAULT_THERAPIST_RATE_BY_GENDER.female;
+}
+
+function updateTherapistRateDefault() {
+  if (!therapistDraftForm) return;
+  const gender = therapistDraftForm.therapistGender?.value || "female";
+  const rateInput = therapistDraftForm.therapistRate;
+  if (!rateInput) return;
+
+  const defaultRate = getDefaultTherapistRate(gender);
+  const currentRate = Number(rateInput.value || "0");
+  const otherGender = gender === "female" ? "male" : "female";
+  const otherGenderRate = getDefaultTherapistRate(otherGender);
+
+  if (!rateInput.value || currentRate === 0 || currentRate === otherGenderRate) {
+    rateInput.value = defaultRate;
+  }
+
+  rateInput.placeholder = `Default ${defaultRate} for ${gender}`;
+}
+
+function setupTherapistRateDefaults() {
+  therapistDraftForm?.therapistGender?.addEventListener("change", updateTherapistRateDefault);
+  updateTherapistRateDefault();
+}
+
 function setupAdminTabs() {
   document.querySelectorAll("[data-tab-button]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -200,21 +232,23 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   const data = new FormData(therapistDraftForm);
   const profilePicture = await readLogoFile(therapistProfilePictureInput.files?.[0]);
   const slides = await readImageFiles(therapistSlidesInput.files, 10);
+  const selectedGender = data.get("therapistGender");
+  const rateValue = Number(data.get("therapistRate")) || getDefaultTherapistRate(selectedGender);
   
   // Create therapist object matching public data structure
   const therapist = {
     id: Date.now().toString(),
     name: data.get("therapistName").trim(),
-    gender: data.get("therapistGender"),
+    gender: selectedGender,
     location: data.get("therapistLocation").trim(),
-    rate: Number(data.get("therapistRate")) || 0,
+    rate: rateValue,
     specialties: data.get("therapistSpecialties").split(',').map(s => s.trim()).filter(s => s),
     bio: data.get("therapistBio").trim(),
     availability: data.get("therapistAvailability").trim(),
     mapUrl: data.get("therapistMapUrl").trim(),
     image: profilePicture || "images/therapists/default.svg",
     slides: slides,
-    pricing: { 1: Number(data.get("therapistRate")) || 0 },
+    pricing: { 1: rateValue },
     featured: false,
     createdAt: new Date().toISOString()
   };
@@ -271,6 +305,7 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   
   therapistDraftForm.reset();
   renderTherapistImagePreview();
+  updateTherapistRateDefault();
 });
 
 // Function to clear therapist drafts when storage is full
@@ -584,6 +619,7 @@ async function initializeAdminPage() {
   loadTaxiFareForm();
   setupImagePreviews();
   setupFormSubmissions();
+  setupTherapistRateDefaults();
   renderTherapistImagePreview();
   
   // Initialize therapist management
