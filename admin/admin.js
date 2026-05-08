@@ -446,7 +446,7 @@ function editTherapist(therapistId) {
   };
   
   document.body.appendChild(modal);
-  modal.style.display = 'block';
+  modal.style.display = 'flex';
   
   // Handle multiple image uploads
   const imageInput = document.getElementById('editImages');
