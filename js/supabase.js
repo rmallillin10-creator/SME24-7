@@ -48,8 +48,9 @@ async function adminSignIn(username, password) {
   const normalizedPassword = String(password || "").trim();
 
   if (normalizedUsername === DEFAULT_ADMIN_USERNAME && normalizedPassword === DEFAULT_ADMIN_PASSWORD) {
+    console.log("Admin login successful with default credentials");
     return {
-      data: null,
+      success: true,
       error: null,
       user: {
         username: DEFAULT_ADMIN_USERNAME,
@@ -59,8 +60,10 @@ async function adminSignIn(username, password) {
     };
   }
 
+  console.log("Admin login failed: invalid credentials");
   return {
-    error: { message: "Invalid admin username or password." },
+    success: false,
+    error: "Invalid admin username or password.",
     user: null
   };
 }
@@ -204,4 +207,3 @@ async function saveTherapistToSupabase(therapist) {
     return { error: e.message };
   }
 }
-
