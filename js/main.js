@@ -6,7 +6,7 @@ function peso(value) {
   }).format(value);
 }
 
-const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t/exec";
+const GOOGLE_SHEETS_WEB_APP_URL = "";
 const PHP_PER_USD = 57.5;
 const DEFAULT_SITE_SETTINGS = {
   business: {
@@ -16,6 +16,7 @@ const DEFAULT_SITE_SETTINGS = {
     logo: ""
   },
   taxiFare: 0,
+  googleSheetsWebAppUrl: "",
   services: [
     { name: "Whole Body Massage", price: 0 },
     { name: "Sensual Massage", price: 0 }
@@ -48,9 +49,18 @@ function getSiteSettings() {
   // Try localStorage first
   try {
     const saved = JSON.parse(localStorage.getItem("eliteSiteSettings") || "{}");
+    const taxiFareFromSaved = saved.taxiFare ?? saved.taxiFares?.default ?? 0;
+    const taxiFareCurrencyFromSaved = saved.taxiFareCurrency ?? saved.taxiFares?.currency ?? "PHP";
+    const taxiFareNotesFromSaved = saved.taxiFareNotes ?? saved.taxiFares?.notes ?? "";
+    const googleSheetsWebAppUrlFromSaved = saved.googleSheetsWebAppUrl || "";
+
     cachedSettings = {
       ...DEFAULT_SITE_SETTINGS,
       ...saved,
+      taxiFare: taxiFareFromSaved,
+      taxiFareCurrency: taxiFareCurrencyFromSaved,
+      taxiFareNotes: taxiFareNotesFromSaved,
+      googleSheetsWebAppUrl: googleSheetsWebAppUrlFromSaved,
       business: { ...DEFAULT_SITE_SETTINGS.business, ...(saved.business || {}) },
       contacts: { ...DEFAULT_SITE_SETTINGS.contacts, ...(saved.contacts || {}) }
     };
@@ -59,6 +69,16 @@ function getSiteSettings() {
     cachedSettings = DEFAULT_SITE_SETTINGS;
     return DEFAULT_SITE_SETTINGS;
   }
+}
+
+function getGoogleSheetsWebAppUrl() {
+  const settings = getSiteSettings();
+  const savedUrl = (settings.googleSheetsWebAppUrl || GOOGLE_SHEETS_WEB_APP_URL || "").trim();
+  const placeholderFragment = "AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t";
+  if (!savedUrl || savedUrl.includes(placeholderFragment)) {
+    return "";
+  }
+  return savedUrl;
 }
 
 // Async function to fetch settings from Supabase
@@ -598,8 +618,9 @@ function setupBookingForm() {
     event.preventDefault();
     updateBookingEstimate();
 
-    if (!GOOGLE_SHEETS_WEB_APP_URL) {
-      status.textContent = "Add your Google Apps Script web app URL in js/main.js first.";
+    const googleSheetsWebAppUrl = getGoogleSheetsWebAppUrl();
+    if (!googleSheetsWebAppUrl) {
+      status.textContent = "Google Sheets web app URL is not configured. Set it in admin settings or js/main.js.";
       return;
     }
 
@@ -653,25 +674,6 @@ function setupBookingForm() {
       const validation = await validateTherapistAvailability(payload);
       if (!validation.isValid) {
         throw new Error(validation.error);
-      }
-
-      // Check if Google Sheets URL is configured (not a placeholder)
-      const isPlaceholderUrl = GOOGLE_SHEETS_WEB_APP_URL.includes('AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t');
-      if (isPlaceholderUrl) {
-        console.warn("Google Sheets URL is placeholder, saving to localStorage for testing");
-        const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
-        bookings.push(payload);
-        localStorage.setItem("testBookings", JSON.stringify(bookings));
-        status.textContent = "Saved";
-        form.reset();
-        selectedFemaleTherapistIds = [];
-        selectedMaleTherapistIds = [];
-        renderTherapistSelection("female");
-        renderTherapistSelection("male");
-        const taxiFare = document.getElementById("taxiFare");
-        if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
-        updateBookingEstimate();
-        return;
       }
 
       try {
@@ -773,7 +775,7 @@ async function saveBookingToGoogleSheets(bookingData) {
       })
     };
     
-    const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+    const response = await fetch(getGoogleSheetsWebAppUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -814,7 +816,7 @@ async function saveTherapistBookingCountsToGoogleSheets() {
       lastUpdated: new Date().toISOString()
     }));
 
-    const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+    const response = await fetch(getGoogleSheetsWebAppUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

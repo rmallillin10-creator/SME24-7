@@ -121,11 +121,11 @@ function mapFieldToHeader(fieldName) {
     preferredService: "Preferred Service",
     preferredDate: "Preferred Date",
     preferredTime: "Preferred Time",
-    preferredFemaleTherapist: "Preferred Female Therapists",
+    preferredFemaleTherapist: "Preferred Female Therapist",
     femaleTherapistCount: "Female Therapist Count",
     preferredFemaleTherapistName: "Preferred Female Therapist Name",
     femaleTherapistAvailable: "Female Therapist Available",
-    preferredMaleTherapist: "Preferred Male Therapists",
+    preferredMaleTherapist: "Preferred Male Therapist",
     maleTherapistCount: "Male Therapist Count",
     preferredMaleTherapistName: "Preferred Male Therapist Name",
     maleTherapistAvailable: "Male Therapist Available",
@@ -143,6 +143,4 @@ function mapFieldToHeader(fieldName) {
   };
 
   return fieldMapping[fieldName] || fieldName;
-}
-    .setMimeType(ContentService.MimeType.JSON);
 }

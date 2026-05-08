@@ -74,9 +74,10 @@ function loadTaxiFareForm() {
   const taxiFares = settings.taxiFares || {};
   
   if (taxiFareForm) {
-    taxiFareForm.taxiFare.value = taxiFares.default || 0;
-    taxiFareForm.taxiFareCurrency.value = taxiFares.currency || "PHP";
-    taxiFareForm.taxiFareNotes.value = taxiFares.notes || "";
+    taxiFareForm.taxiFare.value = taxiFares.default ?? settings.taxiFare ?? 0;
+    taxiFareForm.taxiFareCurrency.value = taxiFares.currency ?? settings.taxiFareCurrency ?? "PHP";
+    taxiFareForm.taxiFareNotes.value = taxiFares.notes ?? settings.taxiFareNotes ?? "";
+    taxiFareForm.googleSheetsWebAppUrl.value = settings.googleSheetsWebAppUrl || "";
   }
 }
 
@@ -181,7 +182,14 @@ function setupFormSubmissions() {
       notes: data.get("taxiFareNotes").trim()
     };
     
-    const nextSettings = { ...settings, taxiFares };
+    const nextSettings = {
+      ...settings,
+      taxiFares,
+      taxiFare: taxiFares.default,
+      taxiFareCurrency: taxiFares.currency,
+      taxiFareNotes: taxiFares.notes,
+      googleSheetsWebAppUrl: (data.get("googleSheetsWebAppUrl") || "").trim()
+    };
     localStorage.setItem("eliteSiteSettings", JSON.stringify(nextSettings));
     cachedSettings = nextSettings;
     
