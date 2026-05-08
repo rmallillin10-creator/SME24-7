@@ -258,9 +258,14 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
     therapistDraftStatus.textContent = "✅ Therapist saved locally (Supabase sync failed)";
   } else {
     therapistDraftStatus.textContent = "✅ Therapist saved successfully!";
-    // Add to global therapist data for immediate display
+    // Add to global therapist data for immediate display and public pages
     if (typeof therapistData !== 'undefined') {
-      therapistData.push(therapist);
+      const existingIndex = therapistData.findIndex(t => t.id === therapist.id);
+      if (existingIndex >= 0) {
+        therapistData[existingIndex] = therapist;
+      } else {
+        therapistData.push(therapist);
+      }
     }
   }
   
