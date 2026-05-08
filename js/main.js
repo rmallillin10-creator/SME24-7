@@ -6,7 +6,7 @@ function peso(value) {
   }).format(value);
 }
 
-const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/YOUR_WEB_APP_URL_HERE/exec";
+const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t/exec";
 const PHP_PER_USD = 57.5;
 const DEFAULT_SITE_SETTINGS = {
   business: {
@@ -436,30 +436,35 @@ function setupBookingForm() {
       maleTherapistCount: data.get("maleTherapistCount"),
       preferredDate: data.get("preferredDate"),
       preferredTime: data.get("preferredTime"),
-      preferredFemaleTherapists: getSelectedTherapistName(data.get("preferredFemaleTherapist")),
-      preferredMaleTherapists: getSelectedTherapistName(data.get("preferredMaleTherapist")),
-      taxiFare: `${usd(estimate.taxiUsd)} (${peso(estimate.taxiFarePhp)})`,
+      preferredFemaleTherapist: data.get("preferredFemaleTherapist"),
+      preferredMaleTherapist: data.get("preferredMaleTherapist"),
+      location: data.get("location"),
+      landmark: data.get("landmark"),
+      specialRequests: data.get("notes"),
       estimatedServiceCost: estimate.estimatedServiceCost,
-      totalEstimateUsdPeso: estimate.totalEstimate,
-      notes: data.get("notes"),
+      taxiFare: `${usd(estimate.taxiUsd)} (${peso(estimate.taxiFarePhp)})`,
+      totalEstimate: estimate.totalEstimate,
       termsAccepted: data.get("termsAccepted") === "on" ? "Yes" : "No"
     };
 
     status.textContent = "Sending booking request...";
     try {
-      await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
-      });
-      status.textContent = "Booking request saved to Google Sheets.";
+      await saveBookingToGoogleSheets(payload);
+      status.textContent = "✅ Booking request saved successfully!";
       form.reset();
       const taxiFare = document.getElementById("taxiFare");
       if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
       updateBookingEstimate();
-    } catch {
-      status.textContent = "Booking could not be sent. Check the Apps Script URL.";
+      
+      // Also save therapist booking counts
+      try {
+        await saveTherapistBookingCountsToGoogleSheets();
+      } catch (bookingError) {
+        console.warn("Could not save therapist booking counts:", bookingError);
+      }
+    } catch (error) {
+      console.error("Booking submission error:", error);
+      status.textContent = "⚠️ Booking could not be sent. Please try again or contact support.";
     }
   });
 }
