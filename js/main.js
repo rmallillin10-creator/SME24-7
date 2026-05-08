@@ -565,6 +565,21 @@ function setupBookingForm() {
         throw new Error(validation.error);
       }
 
+      // Check if Google Sheets URL is configured (not a placeholder)
+      if (GOOGLE_SHEETS_WEB_APP_URL.includes('AKfycbyF7X3JnLzQ8W7kK9mX2p5r8t3y6u1i4o2w3e6r9t7y5u8i2o1w4e6r9t')) {
+        // For testing without Google Sheets, save to localStorage
+        console.warn("Google Sheets URL is placeholder, saving to localStorage for testing");
+        const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
+        bookings.push(payload);
+        localStorage.setItem("testBookings", JSON.stringify(bookings));
+        status.textContent = "✅ Booking saved locally (Google Sheets not configured)";
+        form.reset();
+        const taxiFare = document.getElementById("taxiFare");
+        if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
+        updateBookingEstimate();
+        return;
+      }
+
       await saveBookingToGoogleSheets(payload);
       status.textContent = "✅ Booking request saved successfully!";
       form.reset();
@@ -580,7 +595,7 @@ function setupBookingForm() {
       }
     } catch (error) {
       console.error("Booking submission error:", error);
-      status.textContent = "⚠️ Booking could not be sent. Please try again or contact support.";
+      status.textContent = `⚠️ Booking error: ${error.message || "Please try again or contact support."}`;
     }
   });
 }
@@ -1057,7 +1072,11 @@ async function fallbackAdminSignIn(email, password) {
 function addAdminLoginToNavigation() {
   // Add admin button to all pages for easier access
   const navLinks = document.querySelector(".nav-links");
-  if (!navLinks || navLinks.querySelector(".admin-login-nav")) return;
+  if (!navLinks) return;
+  
+  // Remove any existing admin buttons first
+  const existingAdminButtons = navLinks.querySelectorAll(".admin-login-nav, a[href='#'][onclick*='openAdminLogin']");
+  existingAdminButtons.forEach(button => button.remove());
   
   const adminLink = document.createElement("a");
   adminLink.href = "#";
