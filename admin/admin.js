@@ -311,11 +311,24 @@ function renderTherapistLists() {
   const allTherapists = getAllTherapists();
   const bookings = getTherapistBookings();
   
-  // Sort therapists by booking count (most booked first)
-  const sortedTherapists = allTherapists.map(therapist => ({
-    ...therapist,
-    bookingCount: bookings[therapist.id] || 0
-  })).sort((a, b) => b.bookingCount - a.bookingCount);
+  // Check if there are any bookings
+  const hasAnyBookings = Object.keys(bookings).length > 0;
+  
+  let sortedTherapists;
+  if (hasAnyBookings) {
+    // Sort therapists by booking count (most booked first)
+    sortedTherapists = allTherapists.map(therapist => ({
+      ...therapist,
+      bookingCount: bookings[therapist.id] || 0
+    })).sort((a, b) => b.bookingCount - a.bookingCount);
+  } else {
+    // No bookings yet - random ranking until bookings are made
+    sortedTherapists = allTherapists.map(therapist => ({
+      ...therapist,
+      bookingCount: bookings[therapist.id] || 0,
+      randomRank: Math.random() // Add random rank for no bookings
+    })).sort((a, b) => a.randomRank - b.randomRank);
+  }
   
   const femaleTherapists = sortedTherapists.filter(t => t.gender === 'female');
   const maleTherapists = sortedTherapists.filter(t => t.gender === 'male');
@@ -324,11 +337,16 @@ function renderTherapistLists() {
   const maleList = document.getElementById('maleTherapistsList');
   
   if (femaleList) {
-    femaleList.innerHTML = femaleTherapists.map((therapist, index) => `
-      <div class="therapist-item ${index === 0 ? 'most-booked' : ''}" data-id="${therapist.id}">
+    femaleList.innerHTML = femaleTherapists.map((therapist, index) => {
+      const isMostBooked = hasAnyBookings && index === 0;
+      const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
+      
+      return `
+      <div class="therapist-item ${isMostBooked ? 'most-booked' : ''} ${isRandomRank ? 'random-ranked' : ''}" data-id="${therapist.id}">
         <div class="therapist-avatar-container">
           <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
-          ${index === 0 ? '<div class="crown-icon">👑</div>' : ''}
+          ${isMostBooked ? '<div class="crown-icon">👑</div>' : ''}
+          ${isRandomRank ? '<div class="random-icon">🎲</div>' : ''}
         </div>
         <div class="therapist-info">
           <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
@@ -342,16 +360,21 @@ function renderTherapistLists() {
           <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
           <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
   
   if (maleList) {
-    maleList.innerHTML = maleTherapists.map((therapist, index) => `
-      <div class="therapist-item ${index === 0 ? 'most-booked' : ''}" data-id="${therapist.id}">
+    maleList.innerHTML = maleTherapists.map((therapist, index) => {
+      const isMostBooked = hasAnyBookings && index === 0;
+      const isRandomRank = !hasAnyBookings && therapist.randomRank !== undefined;
+      
+      return `
+      <div class="therapist-item ${isMostBooked ? 'most-booked' : ''} ${isRandomRank ? 'random-ranked' : ''}" data-id="${therapist.id}">
         <div class="therapist-avatar-container">
           <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
-          ${index === 0 ? '<div class="crown-icon">👑</div>' : ''}
+          ${isMostBooked ? '<div class="crown-icon">👑</div>' : ''}
+          ${isRandomRank ? '<div class="random-icon">🎲</div>' : ''}
         </div>
         <div class="therapist-info">
           <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
@@ -365,8 +388,8 @@ function renderTherapistLists() {
           <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
           <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 }
 
