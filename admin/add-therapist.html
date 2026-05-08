@@ -8,6 +8,148 @@
   <link rel="alternate icon" type="image/png" href="../logo/elite%20logo.png">
   <link rel="apple-touch-icon" href="../logo/elite%20logo.png">
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .admin-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .therapist-list {
+      display: grid;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .therapist-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f9f9f9;
+      position: relative;
+    }
+
+    .therapist-item:hover {
+      background: #f0f0f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .therapist-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 15px;
+      border: 2px solid #007bff;
+    }
+
+    .therapist-avatar-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .crown-icon {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      background: #ffd700;
+      color: white;
+      font-size: 16px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+      border: 2px solid #ffc107;
+    }
+
+    .most-booked {
+      border: 2px solid #ffd700;
+      background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+    }
+
+    .therapist-info {
+      flex: 1;
+    }
+
+    .therapist-name {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+      cursor: pointer;
+    }
+
+    .therapist-name:hover {
+      color: #007bff;
+    }
+
+    .therapist-details {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .therapist-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .edit-btn, .delete-btn {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .edit-btn {
+      background: #28a745;
+      color: white;
+    }
+
+    .edit-btn:hover {
+      background: #218838;
+    }
+
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+    }
+
+    .delete-btn:hover {
+      background: #c82333;
+    }
+
+    .edit-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      z-index: 1000;
+    }
+
+    .edit-modal-content {
+      background: white;
+      margin: 50px auto;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  </style>
 </head>
 <body class="admin-page admin-locked">
   <div id="adminAccessStatus" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.9); padding: 20px; border: 1px solid #ccc; border-radius: 8px; z-index: 99;">Accessing admin panel...</div>
@@ -37,7 +179,9 @@
     <div class="admin-tabs" role="tablist">
       <button class="admin-tab active" type="button" data-tab-button="businessProfile">Business Profile</button>
       <button class="admin-tab" type="button" data-tab-button="taxiFarePanel">Taxi Fare</button>
-      <button class="admin-tab" type="button" data-tab-button="therapistPanel">Therapist</button>
+      <button class="admin-tab" type="button" data-tab-button="therapistPanel">Add Therapist</button>
+      <button class="admin-tab" type="button" data-tab-button="femaleTherapistsPanel">Female Therapists</button>
+      <button class="admin-tab" type="button" data-tab-button="maleTherapistsPanel">Male Therapists</button>
     </div>
 
     <section class="admin-tab-panel active" id="businessProfile" data-tab-panel>
@@ -102,6 +246,20 @@
         </div>
         <div class="actions"><button type="submit">Save Therapist Draft</button><span id="therapistDraftStatus" class="status"></span></div>
       </form>
+    </section>
+
+    <section class="admin-tab-panel" id="femaleTherapistsPanel" data-tab-panel>
+      <h2>Female Therapists</h2>
+      <div id="femaleTherapistsList" class="therapist-list">
+        <!-- Therapist list will be populated here -->
+      </div>
+    </section>
+
+    <section class="admin-tab-panel" id="maleTherapistsPanel" data-tab-panel>
+      <h2>Male Therapists</h2>
+      <div id="maleTherapistsList" class="therapist-list">
+        <!-- Therapist list will be populated here -->
+      </div>
     </section>
   </main>
 

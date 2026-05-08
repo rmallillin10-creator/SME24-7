@@ -285,6 +285,193 @@ function clearTherapistDrafts() {
   }
 }
 
+// Get therapist booking data
+function getTherapistBookings() {
+  try {
+    return JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+  } catch (e) {
+    console.warn("Could not load therapist bookings:", e);
+    return {};
+  }
+}
+
+// Save therapist booking data
+function saveTherapistBooking(therapistId) {
+  try {
+    const bookings = getTherapistBookings();
+    bookings[therapistId] = (bookings[therapistId] || 0) + 1;
+    localStorage.setItem("eliteTherapistBookings", JSON.stringify(bookings));
+  } catch (e) {
+    console.error("Error saving therapist booking:", e);
+  }
+}
+
+// Render therapist lists in admin panel
+function renderTherapistLists() {
+  const allTherapists = getAllTherapists();
+  const bookings = getTherapistBookings();
+  
+  // Sort therapists by booking count (most booked first)
+  const sortedTherapists = allTherapists.map(therapist => ({
+    ...therapist,
+    bookingCount: bookings[therapist.id] || 0
+  })).sort((a, b) => b.bookingCount - a.bookingCount);
+  
+  const femaleTherapists = sortedTherapists.filter(t => t.gender === 'female');
+  const maleTherapists = sortedTherapists.filter(t => t.gender === 'male');
+  
+  const femaleList = document.getElementById('femaleTherapistsList');
+  const maleList = document.getElementById('maleTherapistsList');
+  
+  if (femaleList) {
+    femaleList.innerHTML = femaleTherapists.map((therapist, index) => `
+      <div class="therapist-item ${index === 0 ? 'most-booked' : ''}" data-id="${therapist.id}">
+        <div class="therapist-avatar-container">
+          <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
+          ${index === 0 ? '<div class="crown-icon">👑</div>' : ''}
+        </div>
+        <div class="therapist-info">
+          <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
+          <div class="therapist-details">
+            Rate: ${therapist.rate ? '₱' + therapist.rate : 'Contact for rates'} | 
+            ${therapist.location || 'Metro Manila'} | 
+            Bookings: ${bookings[therapist.id] || 0}
+          </div>
+        </div>
+        <div class="therapist-actions">
+          <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
+          <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  if (maleList) {
+    maleList.innerHTML = maleTherapists.map((therapist, index) => `
+      <div class="therapist-item ${index === 0 ? 'most-booked' : ''}" data-id="${therapist.id}">
+        <div class="therapist-avatar-container">
+          <img class="therapist-avatar" src="${therapist.image || 'images/therapists/default.svg'}" alt="${therapist.name}">
+          ${index === 0 ? '<div class="crown-icon">👑</div>' : ''}
+        </div>
+        <div class="therapist-info">
+          <div class="therapist-name" onclick="editTherapist('${therapist.id}')">${therapist.name}</div>
+          <div class="therapist-details">
+            Rate: ${therapist.rate ? '₱' + therapist.rate : 'Contact for rates'} | 
+            ${therapist.location || 'Metro Manila'} | 
+            Bookings: ${bookings[therapist.id] || 0}
+          </div>
+        </div>
+        <div class="therapist-actions">
+          <button class="edit-btn" onclick="editTherapist('${therapist.id}')">Edit</button>
+          <button class="delete-btn" onclick="deleteTherapist('${therapist.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Edit therapist popup
+function editTherapist(therapistId) {
+  const allTherapists = getAllTherapists();
+  const therapist = allTherapists.find(t => t.id === therapistId);
+  
+  if (!therapist) {
+    console.error('Therapist not found:', therapistId);
+    return;
+  }
+  
+  // Create edit modal
+  const modal = document.createElement('div');
+  modal.className = 'edit-modal';
+  modal.innerHTML = `
+    <div class="edit-modal-content">
+      <h3>Edit Therapist</h3>
+      <form id="editTherapistForm">
+        <div class="form-grid">
+          <div class="field full"><label>Name</label><input type="text" id="editName" value="${therapist.name || ''}" required></div>
+          <div class="field full"><label>Location</label><input type="text" id="editLocation" value="${therapist.location || ''}"></div>
+          <div class="field"><label>Rate</label><input type="number" id="editRate" value="${therapist.rate || ''}" min="0"></div>
+          <div class="field full"><label>Bio</label><textarea id="editBio">${therapist.bio || ''}</textarea></div>
+          <div class="field full"><label>Specialties</label><input type="text" id="editSpecialties" value="${(therapist.specialties || []).join(', ')}" placeholder="comma separated"></div>
+          <div class="field full"><label>Availability</label><input type="text" id="editAvailability" value="${therapist.availability || ''}"></div>
+        </div>
+        <div class="actions">
+          <button type="button" onclick="closeEditModal()">Cancel</button>
+          <button type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  modal.onclick = (e) => {
+    if (e.target === modal) closeEditModal();
+  };
+  
+  document.body.appendChild(modal);
+  modal.style.display = 'block';
+  
+  // Handle form submission
+  document.getElementById('editTherapistForm').onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const updatedTherapist = {
+      ...therapist,
+      name: document.getElementById('editName').value.trim(),
+      location: document.getElementById('editLocation').value.trim(),
+      rate: Number(document.getElementById('editRate').value) || 0,
+      bio: document.getElementById('editBio').value.trim(),
+      specialties: document.getElementById('editSpecialties').value.split(',').map(s => s.trim()).filter(s => s),
+      availability: document.getElementById('editAvailability').value.trim()
+    };
+    
+    // Update in localStorage
+    const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+    const updatedDrafts = drafts.map(d => d.id === therapistId ? updatedTherapist : d);
+    localStorage.setItem("eliteTherapistDrafts", JSON.stringify(updatedDrafts));
+    
+    // Update global therapistData
+    if (typeof therapistData !== 'undefined') {
+      const index = therapistData.findIndex(t => t.id === therapistId);
+      if (index >= 0) {
+        therapistData[index] = updatedTherapist;
+      }
+    }
+    
+    closeEditModal();
+    renderTherapistLists();
+    console.log('Therapist updated:', updatedTherapist);
+  };
+}
+
+// Close edit modal
+function closeEditModal() {
+  const modal = document.querySelector('.edit-modal');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+// Delete therapist
+function deleteTherapist(therapistId) {
+  if (confirm('Are you sure you want to delete this therapist? This action cannot be undone.')) {
+    // Remove from localStorage
+    const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+    const filteredDrafts = drafts.filter(d => d.id !== therapistId);
+    localStorage.setItem("eliteTherapistDrafts", JSON.stringify(filteredDrafts));
+    
+    // Remove from global therapistData
+    if (typeof therapistData !== 'undefined') {
+      const index = therapistData.findIndex(t => t.id === therapistId);
+      if (index >= 0) {
+        therapistData.splice(index, 1);
+      }
+    }
+    
+    renderTherapistLists();
+    console.log('Therapist deleted:', therapistId);
+  }
+}
+
 async function initializeAdminPage() {
   // Initialize admin tabs first
   setupAdminTabs();
@@ -297,6 +484,9 @@ async function initializeAdminPage() {
   setupImagePreviews();
   setupFormSubmissions();
   renderTherapistImagePreview();
+  
+  // Initialize therapist management
+  renderTherapistLists();
 }
 
 if (isAdminLoggedIn()) {

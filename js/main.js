@@ -130,37 +130,21 @@ function formatAvailability(availability) {
 }
 
 function therapistCard(therapist) {
-  const specialties = therapist.specialties.map((item) => `<span class="pill">${item}</span>`).join("");
-  return `
-    <article class="therapist-card">
-      <button class="therapist-photo-button" type="button" data-gallery-id="${therapist.id}" aria-label="View ${therapist.name} photos">
-        <img class="therapist-photo" src="${therapist.image}" alt="${therapist.name}">
-      </button>
-      <div class="card-body">
-        <h3>${therapist.name}</h3>
-        <p>${therapist.bio}</p>
-        <div class="meta">${specialties}</div>
-        <p><strong>${therapist.location}</strong><br><span class="price">${peso(therapist.rate)}</span> starting rate</p>
-        <p class="notice">${formatAvailability(therapist.availability)}</p>
-        ${therapist.mapUrl ? `<p><a class="map-link" href="${therapist.mapUrl}" target="_blank" rel="noopener">View Map / Location</a></p>` : ""}
-        <a class="button" href="booking.html?therapist=${encodeURIComponent(therapist.id)}">Book Now</a>
-      </div>
-    </article>
-  `;
-}
-
-function renderTherapists(targetId, options = {}) {
-  const target = document.getElementById(targetId);
-  if (!target) return;
-
-  const all = getAllTherapists();
-  const filtered = all.filter((therapist) => {
-    if (options.gender && therapist.gender !== options.gender) return false;
-    if (options.featured && !therapist.featured) return false;
-    return true;
-  });
-
-  target.innerHTML = filtered.map(therapistCard).join("");
+  return '<div class="therapist-card" onclick="incrementTherapistBooking(\'' + therapist.id + '\')">' +
+    '    <div class="therapist-image">' +
+      '      <img src="' + (therapist.image || 'images/therapists/default.svg') + '" alt="' + therapist.name + '">' +
+    '    </div>' +
+    '    <div class="therapist-info">' +
+    '      <h3>' + therapist.name + '</h3>' +
+    '      <p class="therapist-location">' + (therapist.location || 'Metro Manila') + '</p>' +
+    '      <p class="therapist-bio">' + (therapist.bio || 'Professional massage therapist') + '</p>' +
+    '      <p class="therapist-rate">Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + '</p>' +
+    '      <div class="therapist-specialties">' + ((therapist.specialties || []).join(', ')) + '</div>' +
+    '    </div>' +
+    '    <div class="therapist-actions">' +
+    '      <button class="btn-primary" onclick="selectTherapist(\'' + therapist.id + '\')">Select & Book</button>' +
+    '    </div>' +
+    '  </div>';
   attachTherapistGallery(target);
 }
 
@@ -280,6 +264,18 @@ function populateBookingSelect() {
 
 function getTherapistById(id) {
   return getAllTherapists().find((therapist) => therapist.id === id);
+}
+
+// Increment therapist booking count when viewed
+function incrementTherapistBooking(therapistId) {
+  try {
+    const bookings = JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+    bookings[therapistId] = (bookings[therapistId] || 0) + 1;
+    localStorage.setItem("eliteTherapistBookings", JSON.stringify(bookings));
+    console.log(`Therapist ${therapistId} booking count: ${bookings[therapistId]}`);
+  } catch (e) {
+    console.error("Error incrementing therapist booking:", e);
+  }
 }
 
 function getBookingEstimate() {
