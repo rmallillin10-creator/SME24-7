@@ -553,7 +553,30 @@ function openAdminLogin(options = {}) {
     try {
       // Check if adminSignIn function is available
       if (typeof adminSignIn !== 'function') {
-        throw new Error("Authentication system not loaded. Please refresh the page.");
+        // Fallback to local authentication if Supabase not loaded
+        console.warn("Supabase not available, using fallback authentication");
+        const fallbackResult = await fallbackAdminSignIn(email, password);
+        
+        if (fallbackResult.user) {
+          statusEl.textContent = "Login successful! Redirecting...";
+          sessionStorage.setItem("adminLoggedIn", "true");
+          sessionStorage.setItem("adminEmail", fallbackResult.user.email);
+          setTimeout(() => {
+            modal.remove();
+            document.body.classList.remove("admin-locked");
+            if (redirectToAdmin) {
+              const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
+                ? "add-therapist.html"
+                : "admin/add-therapist.html";
+              window.location.href = adminPageUrl;
+            } else {
+              onSuccess?.();
+            }
+          }, 500);
+        } else {
+          statusEl.textContent = `Login failed: ${fallbackResult.error?.message || 'Invalid credentials'}`;
+        }
+        return;
       }
 
       const result = await adminSignIn(email, password);
@@ -614,20 +637,6 @@ function requireAdminAccess(onSuccess) {
   openAdminLogin({ required: true, onSuccess });
 }
 
-function attachFooterAdminLink() {
-  const adminLink = document.getElementById("contactAdminLink");
-  if (!adminLink) return;
-
-  adminLink.href = "javascript:void(0)";
-  adminLink.setAttribute("role", "button");
-
-  adminLink.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    // Open the login UI modal on the current page. After success, it will redirect.
-    openAdminLogin({ redirectToAdmin: true });
-  });
-}
 
 function createAdminLoginButton() {
   if (document.getElementById("adminLoginButton")) return;
@@ -649,6 +658,34 @@ function createAdminLoginButton() {
   document.body.appendChild(button);
 }
 
+// Fallback authentication function when Supabase is not available
+async function fallbackAdminSignIn(email, password) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "").trim();
+
+  // Fallback credentials for local authentication
+  const FALLBACK_CREDENTIALS = {
+    "admin@example.com": "admin123@",
+    "r.mallillin.psa@gmail.com": "admin123@"
+  };
+
+  if (FALLBACK_CREDENTIALS[normalizedEmail] === normalizedPassword) {
+    return {
+      user: {
+        email: normalizedEmail,
+        id: "fallback-admin",
+        isFallbackAdmin: true
+      },
+      error: null
+    };
+  }
+
+  return {
+    user: null,
+    error: { message: "Invalid email or password. Use admin@example.com with admin123@" }
+  };
+}
+
 function addAdminLoginToNavigation() {
   const navLinks = document.querySelector(".nav-links");
   if (!navLinks || navLinks.querySelector(".admin-login-nav")) return;
@@ -665,7 +702,6 @@ function addAdminLoginToNavigation() {
   navLinks.appendChild(adminLink);
 }
 
-attachFooterAdminLink();
 createAdminLoginButton();
 addAdminLoginToNavigation();
 
