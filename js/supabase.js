@@ -35,39 +35,31 @@ async function initSupabase() {
   return supabase;
 }
 
-// Sign in admin with Supabase Auth
-async function adminSignIn(email, password) {
-  const normalizedEmail = String(email).trim();
-  const normalizedPassword = String(password);
+// Sign in admin with hardcoded local credentials
+async function adminSignIn(username, password) {
+  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "").trim();
 
-  const fallbackAccounts = [
-    { email: "admin", password: "admin123" },
-    { email: "admin@admin.com", password: "admin123" }
-  ];
+  // Check hardcoded fallback credentials
+  const DEFAULT_ADMIN_USERNAME = "admin";
+  const DEFAULT_ADMIN_PASSWORD = "admin123@";
 
-  const isFallback = fallbackAccounts.some((account) =>
-    account.email === normalizedEmail.toLowerCase() && account.password === normalizedPassword
-  );
-
-  const client = await initSupabase();
-  if (!client && !isFallback) return { success: false, error: "Supabase not initialized" };
-
-  if (isFallback) {
-    return { success: true, error: null, user: { email: normalizedEmail, id: "local-admin" } };
+  if (normalizedUsername === DEFAULT_ADMIN_USERNAME && normalizedPassword === DEFAULT_ADMIN_PASSWORD) {
+    return {
+      data: null,
+      error: null,
+      user: {
+        username: DEFAULT_ADMIN_USERNAME,
+        id: "local-admin",
+        isDefaultAdmin: true
+      }
+    };
   }
 
-  try {
-    const { data, error } = await client.auth.signInWithPassword({
-      email: normalizedEmail,
-      password: normalizedPassword
-    });
-
-    if (error) throw error;
-
-    return { success: true, error: null, user: data.user };
-  } catch (err) {
-    return { success: false, error: err.message, user: null };
-  }
+  return {
+    error: { message: "Invalid admin username or password." },
+    user: null
+  };
 }
 
 // Fetch site settings from Supabase

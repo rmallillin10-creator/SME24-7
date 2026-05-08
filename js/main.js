@@ -521,12 +521,12 @@ function openAdminLogin(options = {}) {
       <h2>Admin Login</h2>
       <form id="adminLoginForm">
         <div class="form-group">
-          <label for="adminEmail">Username or Email</label>
-          <input type="text" id="adminEmail" placeholder="admin" autocomplete="username" required>
+          <label for="adminUsername">Username</label>
+          <input type="text" id="adminUsername" placeholder="admin" autocomplete="username" required>
         </div>
         <div class="form-group">
           <label for="adminPassword">Password</label>
-          <input type="password" id="adminPassword" placeholder="admin123" autocomplete="current-password" required>
+          <input type="password" id="adminPassword" placeholder="admin123@" autocomplete="current-password" required>
         </div>
         <div class="form-actions">
           <button type="submit">Login</button>
@@ -545,14 +545,14 @@ function openAdminLogin(options = {}) {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = modal.querySelector("#adminEmail").value;
+    const username = modal.querySelector("#adminUsername").value;
     const password = modal.querySelector("#adminPassword").value;
 
     statusEl.textContent = "Logging in...";
 
-    const result = await adminSignIn(email, password);
+    const result = await adminSignIn(username, password);
 
-    if (result.success) {
+    if (result.user) {
       sessionStorage.setItem("adminLoggedIn", "true");
       modal.remove();
       document.body.classList.remove("admin-locked");
@@ -565,7 +565,7 @@ function openAdminLogin(options = {}) {
         onSuccess?.();
       }
     } else {
-      statusEl.textContent = `Login failed: ${result.error}`;
+      statusEl.textContent = `Login failed: ${result.error?.message || 'Invalid credentials'}`;
     }
   });
 
@@ -614,7 +614,45 @@ function attachFooterAdminLink() {
   });
 }
 
+function createAdminLoginButton() {
+  if (document.getElementById("adminLoginButton")) return;
+
+  const button = document.createElement("button");
+  button.id = "adminLoginButton";
+  button.type = "button";
+  button.className = "admin-login-button";
+  button.textContent = "Admin";
+  button.title = "Open admin login";
+  button.addEventListener("click", () => {
+    if (window.location.pathname.toLowerCase().includes("/admin/")) {
+      requireAdminAccess();
+    } else {
+      openAdminLogin({ redirectToAdmin: true });
+    }
+  });
+
+  document.body.appendChild(button);
+}
+
+function addAdminLoginToNavigation() {
+  const navLinks = document.querySelector(".nav-links");
+  if (!navLinks || navLinks.querySelector(".admin-login-nav")) return;
+  
+  const adminLink = document.createElement("a");
+  adminLink.href = "#";
+  adminLink.className = "admin-login-nav";
+  adminLink.textContent = "Admin";
+  adminLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    openAdminLogin({ redirectToAdmin: true });
+  });
+  
+  navLinks.appendChild(adminLink);
+}
+
 attachFooterAdminLink();
+createAdminLoginButton();
+addAdminLoginToNavigation();
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
