@@ -1,15 +1,17 @@
-// Prevent multiple script loading issues
-if (window.supabaseLoaded) {
-  console.warn("Supabase script already loaded");
-} else {
+// Supabase Configuration and Client Initialization
+(function() {
+  // Prevent multiple script loading issues
+  if (window.supabaseLoaded) {
+    console.warn("Supabase script already loaded");
+    return;
+  }
   window.supabaseLoaded = true;
 
-// Supabase Configuration and Client Initialization
-const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
+  const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 
-// Initialize Supabase client (requires @supabase/supabase-js library)
-let supabase = null;
+  // Initialize Supabase client (requires @supabase/supabase-js library)
+  let supabase = null;
 
 async function initSupabase() {
   // If already initialized, return existing client
@@ -247,4 +249,4 @@ async function saveTherapistToSupabase(therapist) {
   }
 }
 
-} // Close the else block for script loading check
+})(); // Close the IIFE

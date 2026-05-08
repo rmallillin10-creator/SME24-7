@@ -623,6 +623,30 @@ function openAdminLogin(options = {}) {
   }
 }
 
+function attachFooterAdminLink() {
+  // Only attach footer admin link on contact.html
+  const currentPath = window.location.pathname.toLowerCase();
+  const isContactPage = currentPath.includes('contact.html') || 
+                       (currentPath.endsWith('/') && currentPath.includes('contact'));
+  
+  if (!isContactPage) {
+    return; // Don't add footer admin link to other pages
+  }
+  
+  const adminLink = document.getElementById("contactAdminLink");
+  if (!adminLink) return;
+
+  adminLink.href = "javascript:void(0)";
+  adminLink.setAttribute("role", "button");
+
+  adminLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    // Open the login UI modal on the current page. After success, it will redirect.
+    openAdminLogin({ redirectToAdmin: true });
+  });
+}
+
 function requireAdminAccess(onSuccess) {
   if (isAdminLoggedIn()) {
     document.body.classList.remove("admin-locked");
@@ -639,6 +663,15 @@ function requireAdminAccess(onSuccess) {
 
 
 function createAdminLoginButton() {
+  // Only add admin button to contact.html
+  const currentPath = window.location.pathname.toLowerCase();
+  const isContactPage = currentPath.includes('contact.html') || 
+                       (currentPath.endsWith('/') && currentPath.includes('contact'));
+  
+  if (!isContactPage) {
+    return; // Don't add admin button to other pages
+  }
+  
   if (document.getElementById("adminLoginButton")) return;
 
   const button = document.createElement("button");
@@ -687,6 +720,15 @@ async function fallbackAdminSignIn(email, password) {
 }
 
 function addAdminLoginToNavigation() {
+  // Only add admin button to contact.html
+  const currentPath = window.location.pathname.toLowerCase();
+  const isContactPage = currentPath.includes('contact.html') || 
+                       (currentPath.endsWith('/') && currentPath.includes('contact'));
+  
+  if (!isContactPage) {
+    return; // Don't add admin button to other pages
+  }
+  
   const navLinks = document.querySelector(".nav-links");
   if (!navLinks || navLinks.querySelector(".admin-login-nav")) return;
   
@@ -702,6 +744,7 @@ function addAdminLoginToNavigation() {
   navLinks.appendChild(adminLink);
 }
 
+attachFooterAdminLink();
 createAdminLoginButton();
 addAdminLoginToNavigation();
 
