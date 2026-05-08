@@ -584,6 +584,112 @@ textarea {
   display: none;
 }
 
+/* Admin Login Modal - Full Screen Container */
+.admin-login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-login-modal .modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.admin-login-modal .modal-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+}
+
+.admin-login-modal h2 {
+  margin: 0 0 24px 0;
+  font-size: 28px;
+  color: var(--text);
+}
+
+.admin-login-modal .form-group {
+  margin-bottom: 18px;
+}
+
+.admin-login-modal label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.admin-login-modal input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.admin-login-modal input:focus {
+  outline: none;
+  border-color: var(--red);
+  background: rgba(215, 25, 32, 0.08);
+}
+
+.admin-login-modal .form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.admin-login-modal button {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.admin-login-modal button:hover {
+  background: var(--red-dark);
+}
+
+.admin-login-modal #cancelLogin {
+  flex: 0.5;
+  background: var(--muted);
+  color: var(--bg);
+}
+
+.admin-login-modal #cancelLogin:hover {
+  background: #c9bcbc;
+}
+
+.admin-login-modal #loginStatus {
+  margin-top: 16px;
+  min-height: 20px;
+  color: #ffb8bb;
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .admin-login-backdrop {
   position: fixed;
   inset: 0;
@@ -592,30 +698,6 @@ textarea {
   place-items: center;
   padding: 24px;
   background: rgba(0, 0, 0, 0.76);
-}
-
-.admin-login-modal {
-  width: min(420px, 100%);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 22px;
-  box-shadow: var(--shadow);
-}
-
-
-.admin-login-modal h2 {
-  font-size: 28px;
-}
-
-.admin-login-modal .admin-login-help {
-  color: var(--muted);
-  font-size: 14px;
-  margin: 0 0 16px;
-}
-
-.admin-login-modal .field {
-  margin-bottom: 14px;
 }
 
 .admin-login-button {

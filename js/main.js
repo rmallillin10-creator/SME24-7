@@ -521,12 +521,12 @@ function openAdminLogin(options = {}) {
       <h2>Admin Login</h2>
       <form id="adminLoginForm">
         <div class="form-group">
-          <label for="adminEmail">Email</label>
-          <input type="email" id="adminEmail" required>
+          <label for="adminEmail">Username or Email</label>
+          <input type="text" id="adminEmail" placeholder="admin" autocomplete="username" required>
         </div>
         <div class="form-group">
           <label for="adminPassword">Password</label>
-          <input type="password" id="adminPassword" required>
+          <input type="password" id="adminPassword" placeholder="admin123" autocomplete="current-password" required>
         </div>
         <div class="form-actions">
           <button type="submit">Login</button>
