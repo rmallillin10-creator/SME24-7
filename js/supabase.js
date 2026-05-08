@@ -2,19 +2,13 @@
 const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 
-const DEFAULT_ADMIN_USERNAME = "admin";
-const DEFAULT_ADMIN_PASSWORD = "admin123";
-
 // Initialize Supabase client (requires @supabase/supabase-js library)
 let supabase = null;
 
 async function initSupabase() {
-  console.log("initSupabase called. Checking for Supabase library...");
-  
   const waitForSupabase = async () => {
     for (let i = 0; i < 20; i += 1) {
       if (typeof window.supabase !== "undefined") {
-        console.log("Supabase library loaded after", i * 100, "ms");
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -33,7 +27,6 @@ async function initSupabase() {
     try {
       const { createClient } = window.supabase;
       supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log("Supabase client initialized successfully");
     } catch (err) {
       console.error("Error initializing Supabase client:", err);
       return null;
@@ -42,30 +35,23 @@ async function initSupabase() {
   return supabase;
 }
 
-// Sign in admin with hardcoded local credentials
-async function adminSignIn(username, password) {
-  const normalizedUsername = String(username || "").trim().toLowerCase();
-  const normalizedPassword = String(password || "").trim();
+// Sign in admin with Supabase Auth
+async function adminSignIn(email, password) {
+  const client = await initSupabase();
+  if (!client) return { success: false, error: "Supabase not initialized" };
 
-  if (normalizedUsername === DEFAULT_ADMIN_USERNAME && normalizedPassword === DEFAULT_ADMIN_PASSWORD) {
-    console.log("Admin login successful with default credentials");
-    return {
-      success: true,
-      error: null,
-      user: {
-        username: DEFAULT_ADMIN_USERNAME,
-        id: "local-admin",
-        isDefaultAdmin: true
-      }
-    };
+  try {
+    const { data, error } = await client.auth.signInWithPassword({
+      email: String(email).trim(),
+      password: String(password)
+    });
+
+    if (error) throw error;
+
+    return { success: true, error: null, user: data.user };
+  } catch (err) {
+    return { success: false, error: err.message, user: null };
   }
-
-  console.log("Admin login failed: invalid credentials");
-  return {
-    success: false,
-    error: "Invalid admin username or password.",
-    user: null
-  };
 }
 
 // Fetch site settings from Supabase

@@ -1,4 +1,4 @@
-const therapistData = [
+let therapistData = [
   {
     id: "aria",
     name: "Aria Santos",
@@ -91,18 +91,6 @@ const therapistData = [
   }
 ];
 
-function getTherapistOverrides() {
-  try {
-    return JSON.parse(localStorage.getItem("eliteTherapistOverrides") || "{}");
-  } catch {
-    return {};
-  }
-}
-
 function getAllTherapists() {
-  const overrides = getTherapistOverrides();
-  return therapistData.map((therapist) => ({
-    ...therapist,
-    ...(overrides[therapist.id] || {})
-  }));
+  return therapistData;
 }

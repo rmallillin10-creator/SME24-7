@@ -113,7 +113,6 @@ function applyBusinessProfile() {
   document.querySelectorAll("link[rel='icon'], link[rel='alternate icon'], link[rel='apple-touch-icon']").forEach((target) => {
     target.href = favicon;
   });
-  document.title = document.title.replace("Sensual Massage Elite SME", "Sensual Massage Elite SME");
 }
 
 function getTherapistPrice(therapist, count) {
@@ -509,28 +508,20 @@ function setAdminLoggedIn() {
   sessionStorage.setItem("eliteAdminLoggedIn", "true");
 }
 
-functiopenAdminLogin(options = {}) {
-  console.log("===== openAdminLogin CALLED =====");
-  console.log("options:", options);
-  
+function openAdminLogin(options = {}) {
   const existing = document.getElementById("adminLoginBackdrop");
-  console.log("Existing backdrop:", existing);
-  if (existing) {
-    console.log("Modal already open, returning.");
-    return;
-  }
+  if (existing) return;
   
-  console.log("Creating backdrop...");
   const backdrop = document.createElement("div");
   backdrop.className = "admin-login-backdrop";
   backdrop.id = "adminLoginBackdrop";
   backdrop.innerHTML = `
     <form class="admin-login-modal" id="adminLoginForm">
       <h2>Admin Login</h2>
-      <p class="admin-login-help">Enter admin username and password.</p>
+      <p class="admin-login-help">Enter your admin email and password.</p>
       <div class="field">
-        <label for="adminUsername">Username</label>
-        <input id="adminUsername" name="username" type="text" autocomplete="username" required>
+        <label for="adminEmail">Email Address</label>
+        <input id="adminEmail" name="email" type="email" autocomplete="email" required>
       </div>
       <div class="field">
         <label for="adminPassword">Password</label>
@@ -540,7 +531,7 @@ functiopenAdminLogin(options = {}) {
         <button type="submit">Login</button>
         <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
       </div>
-      <p class="status" id="adminLoginStatus">Enter your admin username and password.</p>
+      <p class="status" id="adminLoginStatus">Enter your credentials to continue.</p>
     </form>
   `;
   document.body.appendChild(backdrop);
@@ -549,21 +540,15 @@ functiopenAdminLogin(options = {}) {
 
   const form = document.getElementById("adminLoginForm");
   const status = document.getElementById("adminLoginStatus");
-  const usernameInput = document.getElementById("adminUsername");
+  const emailInput = document.getElementById("adminEmail");
   const cancelButton = document.getElementById("adminLoginCancel");
 
-  if (!form) {
-    console.error("Admin login form not found after modal insertion.");
-    return;
+  if (!form) return;
+  
+  if (emailInput) {
+    emailInput.focus();
   }
-  if (!status) {
-    console.error("Admin login status element not found.");
-  }
-  if (!usernameInput) {
-    console.error("Admin login username input not found.");
-  } else {
-    usernameInput.focus();
-  }
+
   if (cancelButton) {
     cancelButton.addEventListener("click", () => {
       if (options.required) {
@@ -580,13 +565,12 @@ functiopenAdminLogin(options = {}) {
 
     try {
       const data = new FormData(form);
-      const username = String(data.get("username") || "").trim();
+      const email = String(data.get("email") || "").trim();
       const password = String(data.get("password") || "");
       
-      console.log("Admin login attempt with username:", username);
       status.textContent = "Logging in...";
       
-      const result = await adminSignIn(username, password);
+      const result = await adminSignIn(email, password);
       
       if (result.success) {
         setAdminLoggedIn();
@@ -606,11 +590,9 @@ functiopenAdminLogin(options = {}) {
         return;
       }
       
-      const errorMsg = result.error || "Invalid admin username or password.";
-      console.log("Login failed:", errorMsg);
+      const errorMsg = result.error || "Invalid email or password.";
       status.textContent = errorMsg;
     } catch (err) {
-      console.error("Admin login submit error:", err);
       status.textContent = "Login error. Please try again.";
     }
   });
@@ -641,18 +623,43 @@ function attachFooterAdminLink() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("DOMContentLoaded event fired. Starting app initialization...");
-  
   // Initialize Supabase and load settings
   await initSupabase();
-  console.log("Supabase initialized, loading settings...");
-  
   await loadSiteSettingsFromSupabase();
-  console.log("Site settings loaded.");
   
+  // Load therapists from Supabase and merge with local data
+  const cloudTherapists = await fetchTherapistsFromSupabase();
+  if (cloudTherapists && cloudTherapists.length > 0) {
+    // Map Supabase snake_case fields to our camelCase app structure
+    const formatted = cloudTherapists.map(t => ({
+      ...t,
+      mapUrl: t.map_url // Ensure mapping for the property used in main.js
+    }));
+    
+    // Replace or merge with static data
+    const existingIds = new Set(therapistData.map(t => t.id));
+    formatted.forEach(t => {
+      if (!existingIds.has(t.id)) therapistData.push(t);
+    });
+  }
+
   applyBusinessProfile();
   renderOfficialNumber();
   attachFooterAdminLink();
   
-  console.log("App initialization complete!");
+  console.log("Website fully initialized.");
+});
+
+// Set up admin shortcut (Ctrl+Alt+Z)
+window.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && event.altKey && event.key.toLowerCase() === "z") {
+    const isTextInput = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) || 
+                        document.activeElement.isContentEditable;
+    
+    if (!isTextInput) {
+      event.preventDefault();
+      console.log("Admin shortcut triggered!");
+      openAdminLogin();
+    }
+  }
 });

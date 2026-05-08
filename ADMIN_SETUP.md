@@ -66,11 +66,12 @@ Login successful for: your-email@example.com
 
 ### Step 2: Verify Admin in Database
 1. Go to **SQL Editor** in Supabase
-2. Run this query to add the admin email to the `admin_users` table:
+2. Go to **Authentication** -> **Users** and copy the **User ID** (UUID) for your email.
+3. Run this query to add the admin to the `admin_users` table (replace the placeholders):
 ```sql
 INSERT INTO admin_users (id, email) 
-VALUES (auth.uid(), 'your-email@example.com')
-ON CONFLICT (email) DO NOTHING;
+VALUES ('your-user-uuid-here', 'your-email@example.com')
+ON CONFLICT (email) DO UPDATE SET id = EXCLUDED.id;
 ```
 
 Replace `'your-email@example.com'` with your actual admin email.
