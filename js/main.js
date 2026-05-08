@@ -501,104 +501,6 @@ function setupFormMessage(formId, message) {
 }
 
 function isAdminLoggedIn() {
-  return sessionStorage.getItem("eliteAdminLoggedIn") === "true";
-}
-
-function setAdminLoggedIn() {
-  sessionStorage.setItem("eliteAdminLoggedIn", "true");
-}
-
-function openAdminLogin(options = {}) {
-  const existing = document.getElementById("adminLoginBackdrop");
-  if (existing) return;
-  
-  const backdrop = document.createElement("div");
-  backdrop.className = "admin-login-backdrop";
-  backdrop.id = "adminLoginBackdrop";
-  backdrop.innerHTML = `
-    <form class="admin-login-modal" id="adminLoginForm">
-      <h2>Admin Login</h2>
-      <p class="admin-login-help">Enter your admin email and password.</p>
-      <div class="field">
-        <label for="adminEmail">Email Address</label>
-        <input id="adminEmail" name="email" type="email" autocomplete="email" required>
-      </div>
-      <div class="field">
-        <label for="adminPassword">Password</label>
-        <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
-      </div>
-      <div class="actions">
-        <button type="submit">Login</button>
-        <button type="button" class="button secondary" id="adminLoginCancel">Cancel</button>
-      </div>
-      <p class="status" id="adminLoginStatus">Enter your credentials to continue.</p>
-    </form>
-  `;
-  document.body.appendChild(backdrop);
-  const statusEl = document.getElementById("adminAccessStatus");
-  if (statusEl) statusEl.style.display = "none";
-
-  const form = document.getElementById("adminLoginForm");
-  const status = document.getElementById("adminLoginStatus");
-  const emailInput = document.getElementById("adminEmail");
-  const cancelButton = document.getElementById("adminLoginCancel");
-
-  if (!form) return;
-  
-  if (emailInput) {
-    emailInput.focus();
-  }
-
-  if (cancelButton) {
-    cancelButton.addEventListener("click", () => {
-      if (options.required) {
-        window.location.href = "index.html";
-        return;
-      }
-      backdrop.remove();
-    });
-  }
-  
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!status) return;
-
-    try {
-      const data = new FormData(form);
-      const email = String(data.get("email") || "").trim();
-      const password = String(data.get("password") || "");
-      
-      status.textContent = "Logging in...";
-      
-      const result = await adminSignIn(email, password);
-      
-      if (result.success) {
-        setAdminLoggedIn();
-        status.textContent = "Login successful! Redirecting...";
-        setTimeout(() => {
-          backdrop.remove();
-          if (options.redirectToAdmin) {
-            const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
-              ? "../admin/add-therapist.html"
-              : "admin/add-therapist.html";
-            window.location.href = adminPageUrl;
-          } else {
-            document.body.classList.remove("admin-locked");
-            options.onSuccess?.();
-          }
-        }, 500);
-        return;
-      }
-      
-      const errorMsg = result.error || "Invalid email or password.";
-      status.textContent = errorMsg;
-    } catch (err) {
-      status.textContent = "Login error. Please try again.";
-    }
-  });
-}
-
-function isAdminLoggedIn() {
   return !!sessionStorage.getItem("adminLoggedIn");
 }
 
@@ -701,37 +603,46 @@ function attachFooterAdminLink() {
   const adminLink = document.getElementById("contactAdminLink");
   if (!adminLink) return;
 
+  adminLink.href = "javascript:void(0)";
+  adminLink.setAttribute("role", "button");
+
   adminLink.addEventListener("click", (event) => {
     event.preventDefault();
+    event.stopPropagation();
     // Open the login UI modal on the current page. After success, it will redirect.
     openAdminLogin({ redirectToAdmin: true });
   });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  // Initialize Supabase and load settings
-  await initSupabase();
-  await loadSiteSettingsFromSupabase();
-  
-  // Load therapists from Supabase and merge with local data
-  const cloudTherapists = await fetchTherapistsFromSupabase();
-  if (cloudTherapists && cloudTherapists.length > 0) {
-    // Map Supabase snake_case fields to our camelCase app structure
-    const formatted = cloudTherapists.map(t => ({
-      ...t,
-      mapUrl: t.map_url // Ensure mapping for the property used in main.js
-    }));
-    
-    // Replace or merge with static data
-    const existingIds = new Set(therapistData.map(t => t.id));
-    formatted.forEach(t => {
-      if (!existingIds.has(t.id)) therapistData.push(t);
-    });
-  }
+attachFooterAdminLink();
 
-  applyBusinessProfile();
-  renderOfficialNumber();
-  attachFooterAdminLink();
-  
-  console.log("Website fully initialized.");
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    // Initialize Supabase and load settings
+    await initSupabase();
+    await loadSiteSettingsFromSupabase();
+    
+    // Load therapists from Supabase and merge with local data
+    const cloudTherapists = await fetchTherapistsFromSupabase();
+    if (cloudTherapists && cloudTherapists.length > 0) {
+      // Map Supabase snake_case fields to our camelCase app structure
+      const formatted = cloudTherapists.map(t => ({
+        ...t,
+        mapUrl: t.map_url // Ensure mapping for the property used in main.js
+      }));
+      
+      // Replace or merge with static data
+      const existingIds = new Set(therapistData.map(t => t.id));
+      formatted.forEach(t => {
+        if (!existingIds.has(t.id)) therapistData.push(t);
+      });
+    }
+
+    applyBusinessProfile();
+    renderOfficialNumber();
+
+    console.log("Website fully initialized.");
+  } catch (error) {
+    console.error("Website initialization failed:", error);
+  }
 });
