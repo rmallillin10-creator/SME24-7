@@ -429,18 +429,17 @@ function getTherapistById(id) {
 }
 
 // Function to calculate taxi fare based on location
-function calculateTaxiFare(location) {
-  if (!location) return 0;
-
-  const locationLower = location.toLowerCase();
+function calculateTaxiFare(location, therapistCount = 1) {
   const settings = getSiteSettings();
+  const baseFare = Number(settings.taxiFare || 0);
+  const count = Number(therapistCount || 0);
+  if (count <= 0) return 0;
 
-  // Default taxi fare from settings
-  let baseFare = settings.taxiFare || 0;
+  const locationLower = String(location || "").toLowerCase();
+  let locationFare = baseFare;
 
   // Location-based adjustments
   const locationRates = {
-    // Metro Manila areas
     'makati': baseFare,
     'bgc': baseFare,
     'bonifacio global city': baseFare,
@@ -453,8 +452,6 @@ function calculateTaxiFare(location) {
     'parañaque': baseFare + 100,
     'las piñas': baseFare + 150,
     'muntinlupa': baseFare + 150,
-
-    // Outside Metro Manila
     'cavite': baseFare + 200,
     'laguna': baseFare + 250,
     'batangas': baseFare + 300,
@@ -462,15 +459,14 @@ function calculateTaxiFare(location) {
     'bulacan': baseFare + 250
   };
 
-  // Check for location matches
   for (const [area, rate] of Object.entries(locationRates)) {
     if (locationLower.includes(area)) {
-      return rate;
+      locationFare = rate;
+      break;
     }
   }
 
-  // Return base fare if no specific location match
-  return baseFare;
+  return locationFare * count;
 }
 
 // Increment therapist booking count when viewed
@@ -489,6 +485,7 @@ function getBookingEstimate() {
   const settings = getSiteSettings();
   const femaleCount = Number(document.getElementById("femaleTherapistCount")?.value || 0);
   const maleCount = Number(document.getElementById("maleTherapistCount")?.value || 0);
+  const totalTherapists = femaleCount + maleCount;
   const femaleIds = String(document.getElementById("preferredFemaleTherapist")?.value || "").split(",").map((id) => id.trim()).filter(Boolean);
   const maleIds = String(document.getElementById("preferredMaleTherapist")?.value || "").split(",").map((id) => id.trim()).filter(Boolean);
   const femaleTherapists = getTherapistsByIds(femaleIds);
@@ -496,7 +493,8 @@ function getBookingEstimate() {
   const serviceSelect = document.getElementById("preferredService");
   const selectedService = serviceSelect?.selectedOptions?.[0];
   const serviceBasePhp = Number(selectedService?.dataset?.price || 0);
-  const taxiFarePhp = Number(document.getElementById("taxiFare")?.value || settings.taxiFare || 0);
+  const taxiFareInput = Number(document.getElementById("taxiFare")?.value || 0);
+  const taxiFarePhp = taxiFareInput || calculateTaxiFare(undefined, totalTherapists);
   const femaleServicePhp = femaleTherapists.reduce((sum, therapist) => sum + getTherapistPrice(therapist, 1), 0);
   const maleServicePhp = maleTherapists.reduce((sum, therapist) => sum + getTherapistPrice(therapist, 1), 0);
   const servicePhp = serviceBasePhp + femaleServicePhp + maleServicePhp;
@@ -539,28 +537,26 @@ function setupBookingForm() {
   const settings = getSiteSettings();
   const taxiFare = document.getElementById("taxiFare");
   const locationInput = document.getElementById("location");
+  const femaleCount = document.getElementById("femaleTherapistCount");
+  const maleCount = document.getElementById("maleTherapistCount");
 
-  // Auto-calculate taxi fare based on location or admin default
   const updateTaxiFare = () => {
-    if (taxiFare && locationInput) {
-      const calculatedFare = calculateTaxiFare(locationInput.value);
-      taxiFare.value = calculatedFare || settings.taxiFare || 0;
-    }
+    if (!taxiFare) return;
+    const totalTherapists = Number(femaleCount?.value || 0) + Number(maleCount?.value || 0);
+    const locationValue = locationInput?.value || "";
+    const calculatedFare = calculateTaxiFare(locationValue, totalTherapists);
+    taxiFare.value = calculatedFare;
   };
 
-  // Set initial taxi fare
+  // Set initial taxi fare based on saved admin value and therapist count
   updateTaxiFare();
 
-  // Add location change listener for auto taxi fare calculation
   if (locationInput) {
     locationInput.addEventListener("input", updateTaxiFare);
     locationInput.addEventListener("change", updateTaxiFare);
   }
 
   // Add count-based selection logic
-  const femaleCount = document.getElementById("femaleTherapistCount");
-  const maleCount = document.getElementById("maleTherapistCount");
-
   function handleCountChange(countInput, gender) {
     const count = Number(countInput.value) || 0;
     const selectedIds = gender === "female" ? selectedFemaleTherapistIds : selectedMaleTherapistIds;
@@ -570,6 +566,7 @@ function setupBookingForm() {
       selectedIds.splice(count);
     }
     renderTherapistSelection(gender);
+    updateTaxiFare();
     updateBookingEstimate();
   }
 
