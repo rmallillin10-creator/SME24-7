@@ -345,6 +345,51 @@ function getTherapistById(id) {
   return getAllTherapists().find((therapist) => therapist.id === id);
 }
 
+// Function to calculate taxi fare based on location
+function calculateTaxiFare(location) {
+  if (!location) return 0;
+
+  const locationLower = location.toLowerCase();
+  const settings = getSiteSettings();
+
+  // Default taxi fare from settings
+  let baseFare = settings.taxiFare || 0;
+
+  // Location-based adjustments
+  const locationRates = {
+    // Metro Manila areas
+    'makati': baseFare,
+    'bgc': baseFare,
+    'bonifacio global city': baseFare,
+    'taguig': baseFare + 50,
+    'pasig': baseFare + 50,
+    'mandaluyong': baseFare + 50,
+    'quezon city': baseFare + 100,
+    'manila': baseFare + 100,
+    'alabang': baseFare + 150,
+    'parañaque': baseFare + 100,
+    'las piñas': baseFare + 150,
+    'muntinlupa': baseFare + 150,
+
+    // Outside Metro Manila
+    'cavite': baseFare + 200,
+    'laguna': baseFare + 250,
+    'batangas': baseFare + 300,
+    'rizal': baseFare + 200,
+    'bulacan': baseFare + 250
+  };
+
+  // Check for location matches
+  for (const [area, rate] of Object.entries(locationRates)) {
+    if (locationLower.includes(area)) {
+      return rate;
+    }
+  }
+
+  // Return base fare if no specific location match
+  return baseFare;
+}
+
 // Increment therapist booking count when viewed
 function incrementTherapistBooking(therapistId) {
   try {
@@ -408,7 +453,28 @@ function setupBookingForm() {
   populateBookingSelect();
   const settings = getSiteSettings();
   const taxiFare = document.getElementById("taxiFare");
-  if (taxiFare && Number(taxiFare.value) === 0) taxiFare.value = settings.taxiFare || 0;
+  const locationInput = document.getElementById("location");
+
+  // Auto-calculate taxi fare based on location
+  const updateTaxiFare = () => {
+    if (taxiFare && locationInput) {
+      const calculatedFare = calculateTaxiFare(locationInput.value);
+      if (calculatedFare > 0) {
+        taxiFare.value = calculatedFare;
+      } else if (Number(taxiFare.value) === 0) {
+        taxiFare.value = settings.taxiFare || 0;
+      }
+    }
+  };
+
+  // Set initial taxi fare
+  updateTaxiFare();
+
+  // Add location change listener for auto taxi fare calculation
+  if (locationInput) {
+    locationInput.addEventListener("input", updateTaxiFare);
+    locationInput.addEventListener("change", updateTaxiFare);
+  }
 
   // Add count-based selection logic
   const femaleCount = document.getElementById("femaleTherapistCount");
@@ -422,6 +488,15 @@ function setupBookingForm() {
     selectInput.disabled = count <= 0;
     if (count <= 0) {
       selectInput.value = "";
+      selectInput.multiple = false;
+      selectInput.size = 1;
+    } else if (count === 1) {
+      selectInput.multiple = false;
+      selectInput.size = 1;
+    } else {
+      // For multiple therapists, enable multiple selection
+      selectInput.multiple = true;
+      selectInput.size = Math.min(count + 1, 5); // Show up to 5 options
     }
   }
 
@@ -433,12 +508,11 @@ function setupBookingForm() {
   handleCountChange(femaleCount, femaleSelect);
   handleCountChange(maleCount, maleSelect);
 
-  ["preferredService", "femaleTherapistCount", "maleTherapistCount", "preferredFemaleTherapist", "preferredMaleTherapist", "taxiFare"].forEach((id) => {
+  ["preferredService", "femaleTherapistCount", "maleTherapistCount", "preferredFemaleTherapist", "preferredMaleTherapist", "taxiFare", "location"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", updateBookingEstimate);
     document.getElementById(id)?.addEventListener("change", updateBookingEstimate);
   });
   updateBookingEstimate();
-}
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -451,6 +525,13 @@ function setupBookingForm() {
 
     const estimate = getBookingEstimate();
     const data = new FormData(form);
+
+    // Handle multiple therapist selections
+    const getTherapistSelections = (name) => {
+      const selections = data.getAll(name);
+      return selections.length > 0 ? selections.join(", ") : "";
+    };
+
     const payload = {
       timestamp: new Date().toISOString(),
       fullname: data.get("fullname"),
@@ -460,8 +541,8 @@ function setupBookingForm() {
       maleTherapistCount: data.get("maleTherapistCount"),
       preferredDate: data.get("preferredDate"),
       preferredTime: data.get("preferredTime"),
-      preferredFemaleTherapist: data.get("preferredFemaleTherapist"),
-      preferredMaleTherapist: data.get("preferredMaleTherapist"),
+      preferredFemaleTherapist: getTherapistSelections("preferredFemaleTherapist"),
+      preferredMaleTherapist: getTherapistSelections("preferredMaleTherapist"),
       location: data.get("location"),
       landmark: data.get("landmark"),
       specialRequests: data.get("notes"),
@@ -575,6 +656,42 @@ async function saveBookingToGoogleSheets(bookingData) {
     return result;
   } catch (error) {
     console.error('Error saving booking to Google Sheets:', error);
+    throw error;
+  }
+}
+
+// Function to save therapist booking counts to Google Sheets
+async function saveTherapistBookingCountsToGoogleSheets() {
+  try {
+    const therapists = getAllTherapists();
+    const therapistCounts = therapists.map(therapist => ({
+      therapistId: therapist.id,
+      therapistName: therapist.name,
+      gender: therapist.gender,
+      bookingCount: therapist.bookingCount || 0,
+      lastUpdated: new Date().toISOString()
+    }));
+
+    const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'saveTherapistCounts',
+        data: therapistCounts
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Therapist booking counts saved:', result);
+    return result;
+  } catch (error) {
+    console.error('Error saving therapist booking counts:', error);
     throw error;
   }
 }
@@ -933,15 +1050,7 @@ async function fallbackAdminSignIn(email, password) {
 }
 
 function addAdminLoginToNavigation() {
-  // Only add admin button to contact.html
-  const currentPath = window.location.pathname.toLowerCase();
-  const isContactPage = currentPath.includes('contact.html') || 
-                       (currentPath.endsWith('/') && currentPath.includes('contact'));
-  
-  if (!isContactPage) {
-    return; // Don't add admin button to other pages
-  }
-  
+  // Add admin button to all pages for easier access
   const navLinks = document.querySelector(".nav-links");
   if (!navLinks || navLinks.querySelector(".admin-login-nav")) return;
   
@@ -960,14 +1069,8 @@ function addAdminLoginToNavigation() {
 // attachFooterAdminLink(); // Disabled - no footer admin buttons
 // createAdminLoginButton(); // Disabled - no floating admin button
 
-// Only add admin navigation button on contact.html
-const currentPath = window.location.pathname.toLowerCase();
-const isContactPage = currentPath.includes('contact.html') || 
-                     (currentPath.endsWith('/') && currentPath.includes('contact'));
-
-if (isContactPage) {
-  addAdminLoginToNavigation();
-}
+// Add admin navigation button to all pages
+addAdminLoginToNavigation();
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
