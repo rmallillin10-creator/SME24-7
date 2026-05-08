@@ -451,11 +451,12 @@ function editTherapist(therapistId) {
   // Handle multiple image uploads
   const imageInput = document.getElementById('editImages');
   const imageGallery = document.getElementById('editImageGallery');
+  let currentImages = therapist.images || [];
+  let selectedImageIndex = 0;
   
   if (imageInput && imageGallery) {
     imageInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
-      const currentImages = therapist.images || [];
       
       // Add new images (up to 10 total)
       const newImages = files.slice(0, 10).map(file => {
@@ -467,8 +468,8 @@ function editTherapist(therapistId) {
       });
       
       Promise.all(newImages).then(imageDataUrls => {
-        const updatedImages = [...currentImages, ...imageDataUrls];
-        updateImageGallery(updatedImages);
+        currentImages = [...currentImages, ...imageDataUrls];
+        updateImageGallery(currentImages);
       });
     });
     
@@ -484,7 +485,7 @@ function editTherapist(therapistId) {
   // Update image gallery display
   function updateImageGallery(images) {
     imageGallery.innerHTML = images.map((img, index) => 
-      `<div class="gallery-image ${index === 0 ? 'selected' : ''}" data-index="${index}">
+      `<div class="gallery-image ${index === selectedImageIndex ? 'selected' : ''}" data-index="${index}">
         <img src="${img}" alt="Therapist picture ${index + 1}">
         <div class="remove-image" onclick="removeImage(${index})">×</div>
       </div>`
@@ -493,7 +494,7 @@ function editTherapist(therapistId) {
   
   // Select image for preview
   function selectImage(index) {
-    const images = therapist.images || [];
+    selectedImageIndex = index;
     document.querySelectorAll('.gallery-image').forEach((img, i) => {
       img.classList.toggle('selected', i === index);
     });
@@ -501,9 +502,11 @@ function editTherapist(therapistId) {
   
   // Remove image
   function removeImage(index) {
-    const images = therapist.images || [];
-    images.splice(index, 1);
-    updateImageGallery(images);
+    currentImages.splice(index, 1);
+    if (selectedImageIndex >= currentImages.length) {
+      selectedImageIndex = 0;
+    }
+    updateImageGallery(currentImages);
   }
   
   // Handle form submission
@@ -518,7 +521,8 @@ function editTherapist(therapistId) {
       bio: document.getElementById('editBio').value.trim(),
       specialties: document.getElementById('editSpecialties').value.split(',').map(s => s.trim()).filter(s => s),
       availability: document.getElementById('editAvailability').value.trim(),
-      images: therapist.images || []
+      image: currentImages.length > 0 ? currentImages[selectedImageIndex] : therapist.image,
+      images: currentImages
     };
     
     // Update in localStorage
