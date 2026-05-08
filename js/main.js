@@ -551,41 +551,14 @@ function openAdminLogin(options = {}) {
     statusEl.textContent = "Logging in...";
 
     try {
-      // Check if adminSignIn function is available
-      if (typeof adminSignIn !== 'function') {
-        // Fallback to local authentication if Supabase not loaded
-        console.warn("Supabase not available, using fallback authentication");
-        const fallbackResult = await fallbackAdminSignIn(email, password);
-        
-        if (fallbackResult.user) {
-          statusEl.textContent = "Login successful! Redirecting...";
-          sessionStorage.setItem("adminLoggedIn", "true");
-          sessionStorage.setItem("adminEmail", fallbackResult.user.email);
-          setTimeout(() => {
-            modal.remove();
-            document.body.classList.remove("admin-locked");
-            if (redirectToAdmin) {
-              const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
-                ? "add-therapist.html"
-                : "admin/add-therapist.html";
-              window.location.href = adminPageUrl;
-            } else {
-              onSuccess?.();
-            }
-          }, 500);
-        } else {
-          statusEl.textContent = `Login failed: ${fallbackResult.error?.message || 'Invalid credentials'}`;
-        }
-        return;
-      }
-
-      const result = await adminSignIn(email, password);
-      console.log("Login result:", result); // Debug log
-
-      if (result.user) {
+      // Always use fallback authentication since we removed Supabase CDN
+      console.log("Using local authentication system");
+      const fallbackResult = await fallbackAdminSignIn(email, password);
+      
+      if (fallbackResult.user) {
         statusEl.textContent = "Login successful! Redirecting...";
         sessionStorage.setItem("adminLoggedIn", "true");
-        sessionStorage.setItem("adminEmail", result.user.email);
+        sessionStorage.setItem("adminEmail", fallbackResult.user.email);
         setTimeout(() => {
           modal.remove();
           document.body.classList.remove("admin-locked");
@@ -599,7 +572,7 @@ function openAdminLogin(options = {}) {
           }
         }, 500);
       } else {
-        statusEl.textContent = `Login failed: ${result.error?.message || 'Invalid credentials'}`;
+        statusEl.textContent = `Login failed: ${fallbackResult.error?.message || 'Invalid credentials'}`;
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -750,39 +723,25 @@ addAdminLoginToNavigation();
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // Initialize Supabase and load settings (with fallback)
-    if (typeof initSupabase === 'function') {
-      await initSupabase();
-      
-      if (typeof loadSiteSettingsFromSupabase === 'function') {
-        await loadSiteSettingsFromSupabase();
+    // Use local data only since we removed Supabase dependency
+    console.log("Using local data system (no external dependencies)");
+    
+    // Load local settings if available
+    const localSettings = localStorage.getItem("eliteSiteSettings");
+    if (localSettings) {
+      try {
+        const settings = JSON.parse(localSettings);
+        window.siteSettings = settings;
+        console.log("Loaded local site settings");
+      } catch (e) {
+        console.warn("Failed to load local settings:", e);
       }
-      
-      // Load therapists from Supabase and merge with local data
-      if (typeof fetchTherapistsFromSupabase === 'function') {
-        const cloudTherapists = await fetchTherapistsFromSupabase();
-        if (cloudTherapists && cloudTherapists.length > 0) {
-          // Map Supabase snake_case fields to our camelCase app structure
-          const formatted = cloudTherapists.map(t => ({
-            ...t,
-            mapUrl: t.map_url // Ensure mapping for the property used in main.js
-          }));
-          
-          // Replace or merge with static data
-          const existingIds = new Set(therapistData.map(t => t.id));
-          formatted.forEach(t => {
-            if (!existingIds.has(t.id)) therapistData.push(t);
-          });
-        }
-      }
-    } else {
-      console.warn("Supabase functions not available, using local data only");
     }
 
     applyBusinessProfile();
     renderOfficialNumber();
 
-    console.log("Website fully initialized.");
+    console.log("Website fully initialized (local mode).");
   } catch (error) {
     console.error("Website initialization failed:", error);
   }
