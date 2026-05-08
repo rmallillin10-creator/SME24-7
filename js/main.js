@@ -705,9 +705,81 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     applyBusinessProfile();
     renderOfficialNumber();
+    
+    // Force refresh therapist data on public pages
+    refreshTherapistData();
+    
+    // Add manual refresh button
+    addRefreshButton();
 
     console.log("Website fully initialized (local mode).");
   } catch (error) {
     console.error("Website initialization failed:", error);
   }
 });
+
+// Function to force refresh therapist data on public pages
+function refreshTherapistData() {
+  // Check if we're on a public therapist page
+  const isTherapistPage = window.location.pathname.includes('femaletherapist.html') || 
+                         window.location.pathname.includes('maletherapist.html');
+  
+  if (isTherapistPage) {
+    console.log("Refreshing therapist data for public page...");
+    
+    // Get fresh therapist data including localStorage drafts
+    const allTherapists = getAllTherapists();
+    
+    // Re-render the therapist directory
+    const targetId = window.location.pathname.includes('femaletherapist.html') ? 'femaleTherapists' : 'maleTherapists';
+    const target = document.getElementById(targetId);
+    
+    if (target) {
+      const gender = window.location.pathname.includes('femaletherapist.html') ? 'female' : 'male';
+      const filtered = allTherapists.filter(therapist => therapist.gender === gender);
+      
+      // Check if therapistCard function exists
+      if (typeof therapistCard === 'function') {
+        target.innerHTML = filtered.map(therapistCard).join("");
+        attachTherapistGallery(target);
+      } else {
+        console.warn("therapistCard function not available, using simple display");
+        target.innerHTML = filtered.map(t => `
+          <div class="therapist-card">
+            <h3>${t.name}</h3>
+            <p>Rate: ${t.rate ? '₱' + t.rate : 'Contact for rates'}</p>
+            <p>${t.bio || 'Professional massage therapist'}</p>
+          </div>
+        `).join("");
+      }
+      
+      console.log(`Refreshed ${filtered.length} ${gender} therapists`);
+    }
+  }
+}
+
+// Add manual refresh button to therapist pages
+function addRefreshButton() {
+  const isTherapistPage = window.location.pathname.includes('femaletherapist.html') || 
+                         window.location.pathname.includes('maletherapist.html');
+  
+  if (isTherapistPage) {
+    const refreshBtn = document.createElement('button');
+    refreshBtn.textContent = 'Refresh Therapists';
+    refreshBtn.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    refreshBtn.onclick = refreshTherapistData;
+    document.body.appendChild(refreshBtn);
+  }
+}
