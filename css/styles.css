@@ -289,6 +289,35 @@ h3 {
   gap: 18px;
 }
 
+.featured-therapist-card {
+  background: #16171d;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.featured-therapist-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(77, 140, 255, 0.35);
+}
+
+.featured-therapist-card img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  display: block;
+}
+
+.featured-therapist-name {
+  padding: 16px;
+  text-align: center;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .therapist-card {
   display: grid;
   grid-template-rows: auto 1fr auto;

@@ -129,13 +129,69 @@ function formatAvailability(availability) {
   return value;
 }
 
-function therapistCard(therapist) {
+function getTherapistBookings() {
+  try {
+    return JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function getBookingCount(therapistId) {
+  return Number(getTherapistBookings()[therapistId] || 0);
+}
+
+function shuffleArray(array) {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function renderFeaturedTherapists(targetId, count = 4) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  const featured = shuffleArray(getAllTherapists().filter((therapist) => therapist.featured));
+  target.innerHTML = featured.slice(0, count).map((therapist) => {
+    const displayImage = therapist.image || (therapist.images && therapist.images.length > 0 ? therapist.images[0] : 'images/therapists/default.svg');
+    return `
+      <article class="featured-therapist-card">
+        <img src="${displayImage}" alt="${therapist.name}">
+        <div class="featured-therapist-name">${therapist.name}</div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderTherapists(targetId, options = {}) {
+  if (options.featured) {
+    return renderFeaturedTherapists(targetId, options.count || 4);
+  }
+
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.innerHTML = `<p class="notice">No therapists available.</p>`;
+}
+
+function therapistCard(therapist, options = {}) {
   const displayImage = therapist.image || (therapist.images && therapist.images.length > 0 ? therapist.images[0] : 'images/therapists/default.svg');
   const hasMultipleImages = therapist.images && therapist.images.length > 1;
-  
+  const rank = options.rank;
+  const bookingCount = Number(options.bookingCount || 0);
+  const rankBadge = typeof rank === 'number'
+    ? '<div class="therapist-rank-badge ' + (rank === 1 ? 'top-rank' : '') + '">#' + rank + ' ' + (rank === 1 ? 'Most booked' : 'Booked') + '</div>'
+    : '';
+  const bookingInfo = typeof rank === 'number'
+    ? '<p class="therapist-bookings">' + bookingCount + ' booking' + (bookingCount === 1 ? '' : 's') + '</p>'
+    : '';
+
   return '<div class="therapist-card" onclick="incrementTherapistBooking(\'' + therapist.id + '\')">' +
     '    <div class="therapist-image">' +
       '      <img src="' + displayImage + '" alt="' + therapist.name + '">' +
+      rankBadge +
       (hasMultipleImages ? '<div class="more-images-indicator">+' + (therapist.images.length - 1) + ' more</div>' : '') +
       '    </div>' +
       '    <div class="therapist-info">' +
@@ -143,6 +199,7 @@ function therapistCard(therapist) {
       '      <p class="therapist-location">' + (therapist.location || 'Metro Manila') + '</p>' +
       '      <p class="therapist-bio">' + (therapist.bio || 'Professional massage therapist') + '</p>' +
       '      <p class="therapist-rate">Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + '</p>' +
+      bookingInfo +
       '      <div class="therapist-specialties">' + ((therapist.specialties || []).join(', ')) + '</div>' +
       '    </div>' +
       '    <div class="therapist-actions">' +
@@ -161,13 +218,24 @@ function setupDirectory(targetId, gender) {
   const draw = () => {
     const query = (search?.value || "").toLowerCase();
     const specialtyValue = specialty?.value || "";
+    const bookings = getTherapistBookings();
+
     const therapists = getAllTherapists().filter((therapist) => {
       const matchesGender = therapist.gender === gender;
       const matchesText = [therapist.name, therapist.location, therapist.bio].join(" ").toLowerCase().includes(query);
       const matchesSpecialty = !specialtyValue || therapist.specialties.includes(specialtyValue);
       return matchesGender && matchesText && matchesSpecialty;
+    }).sort((a, b) => {
+      const countA = bookings[a.id] || 0;
+      const countB = bookings[b.id] || 0;
+      if (countB !== countA) return countB - countA;
+      return a.name.localeCompare(b.name);
     });
-    target.innerHTML = therapists.map(therapistCard).join("") || `<p class="notice">No therapists match that filter yet.</p>`;
+
+    target.innerHTML = therapists.map((therapist, index) => therapistCard(therapist, {
+      rank: index + 1,
+      bookingCount: bookings[therapist.id] || 0
+    })).join("") || `<p class="notice">No therapists match that filter yet.</p>`;
     attachTherapistGallery(target);
   };
 
