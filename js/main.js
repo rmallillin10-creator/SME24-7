@@ -598,6 +598,91 @@ function openAdminLogin(options = {}) {
   });
 }
 
+function isAdminLoggedIn() {
+  return !!sessionStorage.getItem("adminLoggedIn");
+}
+
+function openAdminLogin(options = {}) {
+  const { required = false, redirectToAdmin = false, onSuccess } = options;
+
+  // Remove any existing modal
+  const existing = document.getElementById("adminLoginModal");
+  if (existing) existing.remove();
+
+  // Create modal
+  const modal = document.createElement("div");
+  modal.id = "adminLoginModal";
+  modal.className = "admin-login-modal";
+  modal.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2>Admin Login</h2>
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" required>
+        </div>
+        <div class="form-group">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit">Login</button>
+          ${required ? '' : '<button type="button" id="cancelLogin">Cancel</button>'}
+        </div>
+        <div id="loginStatus"></div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const form = modal.querySelector("#adminLoginForm");
+  const statusEl = modal.querySelector("#loginStatus");
+  const cancelBtn = modal.querySelector("#cancelLogin");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = modal.querySelector("#adminEmail").value;
+    const password = modal.querySelector("#adminPassword").value;
+
+    statusEl.textContent = "Logging in...";
+
+    const result = await adminSignIn(email, password);
+
+    if (result.success) {
+      sessionStorage.setItem("adminLoggedIn", "true");
+      modal.remove();
+      document.body.classList.remove("admin-locked");
+      if (redirectToAdmin) {
+        const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
+          ? "add-therapist.html"
+          : "admin/add-therapist.html";
+        window.location.href = adminPageUrl;
+      } else {
+        onSuccess?.();
+      }
+    } else {
+      statusEl.textContent = `Login failed: ${result.error}`;
+    }
+  });
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      modal.remove();
+      if (required) {
+        // If required, redirect to home or something
+        window.location.href = "index.html";
+      }
+    });
+  }
+
+  // Close on backdrop click if not required
+  if (!required) {
+    modal.querySelector(".modal-backdrop").addEventListener("click", () => modal.remove());
+  }
+}
+
 function requireAdminAccess(onSuccess) {
   if (isAdminLoggedIn()) {
     document.body.classList.remove("admin-locked");
@@ -618,11 +703,8 @@ function attachFooterAdminLink() {
 
   adminLink.addEventListener("click", (event) => {
     event.preventDefault();
-    // Redirect directly to the admin page, which will handle login if necessary
-    const adminPageUrl = window.location.pathname.toLowerCase().includes("/admin/")
-      ? "add-therapist.html" // If already in admin folder, just go to add-therapist.html
-      : "admin/add-therapist.html"; // Otherwise, go to the admin folder
-    window.location.href = adminPageUrl;
+    // Open the login UI modal on the current page. After success, it will redirect.
+    openAdminLogin({ redirectToAdmin: true });
   });
 }
 
