@@ -689,8 +689,9 @@ textarea {
 }
 
 .therapist-selection .therapist-actions {
-  display: flex;
+  display: inline-flex;
   gap: 6px;
+  align-items: center;
 }
 
 .therapist-selection button {
@@ -701,6 +702,26 @@ textarea {
   color: var(--text);
   border-radius: 8px;
   cursor: pointer;
+}
+
+input[type="date"],
+input[type="time"] {
+  background: #1b1b1b;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.4);
+}
+
+.field-note {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 6px;
 }
 
 .therapist-selection button:disabled {

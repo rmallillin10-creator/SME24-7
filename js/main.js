@@ -708,10 +708,7 @@ function renderTherapistSelection(gender) {
     const isSelected = selectedIds.includes(therapist.id);
     return `
       <div class="therapist-row ${isSelected ? "selected" : ""}">
-        <div class="therapist-meta">
-          <strong>${therapist.name}</strong>
-          <span>${therapist.location || "Metro Manila"} — ${therapist.rate ? peso(therapist.rate) : "Contact for rates"}</span>
-        </div>
+        <strong>${therapist.name}</strong>
         <div class="therapist-actions">
           <button type="button" class="therapist-add" data-gender="${gender}" data-id="${therapist.id}" ${isSelected || !canAddMore ? "disabled" : ""}>+</button>
           <button type="button" class="therapist-remove" data-gender="${gender}" data-id="${therapist.id}" ${!isSelected ? "disabled" : ""}>−</button>
