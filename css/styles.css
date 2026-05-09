@@ -227,6 +227,64 @@ button:hover {
   border: 0;
 }
 
+.reviews-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 22px;
+  align-items: start;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.review-card {
+  display: grid;
+  gap: 12px;
+  min-height: 190px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.review-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-card-head strong,
+.review-card-head span {
+  display: block;
+}
+
+.review-card-head span,
+.review-card small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.review-stars {
+  flex: 0 0 auto;
+  color: #ffc94d;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.review-card p {
+  margin: 0;
+  color: #e9dddd;
+}
+
+.review-form {
+  position: sticky;
+  top: 210px;
+}
+
 .hero {
   min-height: calc(100vh - 190px);
   display: grid;
@@ -1094,8 +1152,14 @@ textarea {
 
   .section-head,
   .map-rating-summary,
+  .reviews-layout,
   .split {
     display: block;
+  }
+
+  .review-form {
+    position: static;
+    margin-top: 18px;
   }
 
   .rating-score {

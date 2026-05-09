@@ -81,6 +81,41 @@
       <div data-business-map-rating></div>
     </section>
 
+    <section class="section" id="reviews">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Client feedback</span>
+          <h2>Reviews</h2>
+          <p>Read public client feedback and add your own review after a completed appointment.</p>
+        </div>
+        <a class="button secondary" data-business-map href="https://www.google.com/maps/place/Sensual+Massage+Elite+SME+24%2F7+Hotel+and+Condo+Service+Male+and+Female+Therapist/@14.5479717,121.0337778,15z/data=!4m8!3m7!1s0x3397c92785855c51:0x811c86afc64b37e6!8m2!3d14.5479717!4d121.0502573!9m1!1b1!16s%2Fg%2F11y4r8yxjs?entry=ttu" target="_blank" rel="noopener">Open Google Reviews</a>
+      </div>
+      <div class="reviews-layout">
+        <div class="reviews-grid" id="businessReviews">
+          <p class="notice">Loading reviews...</p>
+        </div>
+        <form class="form-panel review-form" id="reviewForm">
+          <h3>Add Review</h3>
+          <div class="form-grid">
+            <div class="field"><label for="reviewName">Name</label><input id="reviewName" name="reviewName" placeholder="Your name"></div>
+            <div class="field">
+              <label for="reviewRating">Rating</label>
+              <select id="reviewRating" name="reviewRating" required>
+                <option value="5">5 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="2">2 Stars</option>
+                <option value="1">1 Star</option>
+              </select>
+            </div>
+            <div class="field full"><label for="reviewServiceDate">Service Date</label><input id="reviewServiceDate" name="reviewServiceDate" type="date"></div>
+            <div class="field full"><label for="reviewComment">Comment</label><textarea id="reviewComment" name="reviewComment" required placeholder="Share your experience"></textarea></div>
+          </div>
+          <div class="actions"><button type="submit">Submit Review</button><span id="reviewStatus" class="status"></span></div>
+        </form>
+      </div>
+    </section>
+
     <section class="section" id="featured">
       <div class="section-head">
         <div>

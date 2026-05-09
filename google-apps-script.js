@@ -1,5 +1,6 @@
 const SHEET_ID = "1mq3eaZ-0BMEtCfU-yCMsx7qIACyN_ck1_9aCCG9tmtc";
 const SHEET_NAME = "Bookings";
+const REVIEW_SHEET_NAME = "Reviews";
 
 // Comprehensive headers for all possible booking fields
 const BOOKING_HEADERS = [
@@ -30,19 +31,34 @@ const BOOKING_HEADERS = [
   "Terms Accepted"
 ];
 
+const REVIEW_HEADERS = [
+  "Timestamp",
+  "Review ID",
+  "Name",
+  "Rating",
+  "Comment",
+  "Service Date",
+  "Source",
+  "Status"
+];
+
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents || "{}");
     const { action, data, autoAdjustHeaders = false } = payload;
 
     const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
-    const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
 
     let result;
     if (action === 'saveBooking') {
+      const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
       result = handleSaveBooking(sheet, data, autoAdjustHeaders);
     } else if (action === 'saveTherapistCounts') {
+      const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
       result = handleSaveTherapistCounts(sheet, data);
+    } else if (action === 'saveReview') {
+      const sheet = spreadsheet.getSheetByName(REVIEW_SHEET_NAME) || spreadsheet.insertSheet(REVIEW_SHEET_NAME);
+      result = handleSaveReview(sheet, data);
     } else {
       result = { error: "Unknown action" };
     }
@@ -56,17 +72,41 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return jsonResponse({
+  const params = e && e.parameter ? e.parameter : {};
+  if (params.action === "listReviews") {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = spreadsheet.getSheetByName(REVIEW_SHEET_NAME) || spreadsheet.insertSheet(REVIEW_SHEET_NAME);
+    const result = handleListReviews(sheet);
+    if (params.callback) {
+      return jsonpResponse(params.callback, result);
+    }
+    return jsonResponse(result);
+  }
+
+  const result = {
     success: true,
     message: "SME booking endpoint is live",
-    sheetName: SHEET_NAME
-  });
+    sheetName: SHEET_NAME,
+    reviewSheetName: REVIEW_SHEET_NAME
+  };
+
+  if (params.callback) {
+    return jsonpResponse(params.callback, result);
+  }
+  return jsonResponse(result);
 }
 
 function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function jsonpResponse(callback, data) {
+  const safeCallback = String(callback || "").replace(/[^\w.$]/g, "");
+  return ContentService
+    .createTextOutput(`${safeCallback}(${JSON.stringify(data)});`)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 function handleSaveBooking(sheet, bookingData, autoAdjustHeaders) {
@@ -103,6 +143,56 @@ function handleSaveTherapistCounts(sheet, data) {
   // This would handle saving therapist booking counts
   // For now, just return success
   return { success: true, message: "Therapist counts saved" };
+}
+
+function handleSaveReview(sheet, reviewData) {
+  ensureHeaders(sheet, REVIEW_HEADERS);
+
+  const rating = Math.max(1, Math.min(5, Number(reviewData.rating || 5)));
+  const rowData = [
+    reviewData.timestamp || new Date().toISOString(),
+    reviewData.reviewId || "RV" + Date.now(),
+    sanitizeCell(reviewData.name || "Anonymous Client"),
+    rating,
+    sanitizeCell(reviewData.comment || ""),
+    sanitizeCell(reviewData.serviceDate || ""),
+    sanitizeCell(reviewData.source || "Website Review"),
+    sanitizeCell(reviewData.status || "Approved")
+  ];
+
+  sheet.appendRow(rowData);
+
+  return { success: true, message: "Review saved successfully" };
+}
+
+function handleListReviews(sheet) {
+  ensureHeaders(sheet, REVIEW_HEADERS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { success: true, reviews: [] };
+  }
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, REVIEW_HEADERS.length).getValues();
+  const reviews = rows.map((row) => ({
+    timestamp: row[0],
+    reviewId: row[1],
+    name: row[2],
+    rating: row[3],
+    comment: row[4],
+    serviceDate: row[5],
+    source: row[6],
+    status: row[7]
+  })).filter((review) => {
+    const status = String(review.status || "Approved").toLowerCase();
+    return review.comment && status !== "hidden" && status !== "rejected";
+  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  return { success: true, reviews };
+}
+
+function sanitizeCell(value) {
+  const text = String(value || "").trim();
+  return /^[=+\-@]/.test(text) ? "'" + text : text;
 }
 
 function ensureHeaders(sheet, expectedHeaders) {

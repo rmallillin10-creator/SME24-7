@@ -12,7 +12,7 @@ const DEFAULT_SITE_SETTINGS = {
   business: {
     name: "Sensual Massage Elite SME 24/7 Hotel and Condo Service Male and Female Therapist",
     address: "Metro Manila, Philippines",
-    mapsLink: "https://maps.app.goo.gl/UfyMsXmTVrH8Fipd7",
+    mapsLink: "https://www.google.com/maps/place/Sensual+Massage+Elite+SME+24%2F7+Hotel+and+Condo+Service+Male+and+Female+Therapist/@14.5479717,121.0337778,15z/data=!4m8!3m7!1s0x3397c92785855c51:0x811c86afc64b37e6!8m2!3d14.5479717!4d121.0502573!9m1!1b1!16s%2Fg%2F11y4r8yxjs?entry=ttu",
     logo: "",
     googleRating: "5.0",
     googleReviewCount: "",
@@ -44,6 +44,18 @@ function usd(value) {
 let cachedSettings = null;
 let selectedFemaleTherapistIds = [];
 let selectedMaleTherapistIds = [];
+let cachedReviews = null;
+
+const DEFAULT_REVIEWS = [
+  {
+    reviewId: "google-map-summary",
+    name: "Google Maps clients",
+    rating: 5,
+    comment: "Client feedback from the public Google Maps profile can be imported into the Reviews sheet and displayed here.",
+    source: "Google Maps",
+    timestamp: "2026-05-09T00:00:00+08:00"
+  }
+];
 
 function getSiteSettings() {
   // Return cached settings immediately
@@ -82,6 +94,16 @@ function getGoogleSheetsWebAppUrl() {
     return "";
   }
   return savedUrl;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
 }
 
 // Async function to fetch settings from Supabase
@@ -166,6 +188,9 @@ function refreshCurrentPageWidgets() {
     renderCompanyContacts("companyContacts");
   }
   document.querySelectorAll("[data-business-map-rating]").forEach((target) => renderBusinessMapRating(target));
+  if (document.getElementById("businessReviews")) {
+    setupReviewsSection();
+  }
   if (document.getElementById("bookingForm")) {
     populateBookingSelect();
     updateBookingEstimate();
@@ -348,6 +373,169 @@ function renderBusinessMapRating(target) {
       <a class="button secondary" href="${mapsLink}" target="_blank" rel="noopener">Open Google Maps</a>
     </div>
   `;
+}
+
+function normalizeReview(review) {
+  return {
+    reviewId: String(review.reviewId || review.id || `review-${Date.now()}`),
+    name: String(review.name || "Anonymous Client").trim() || "Anonymous Client",
+    rating: Math.max(1, Math.min(5, Number(review.rating || 5))),
+    comment: String(review.comment || "").trim(),
+    serviceDate: String(review.serviceDate || "").trim(),
+    source: String(review.source || "Website Review").trim(),
+    timestamp: review.timestamp || new Date().toISOString()
+  };
+}
+
+function getLocalReviews() {
+  try {
+    return JSON.parse(localStorage.getItem("eliteReviews") || "[]").map(normalizeReview);
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalReview(review) {
+  const reviews = getLocalReviews();
+  reviews.unshift(normalizeReview(review));
+  localStorage.setItem("eliteReviews", JSON.stringify(reviews.slice(0, 50)));
+}
+
+function mergeReviews(...reviewGroups) {
+  const seen = new Set();
+  return reviewGroups.flat().map(normalizeReview).filter((review) => {
+    if (!review.comment) return false;
+    const key = review.reviewId || `${review.name}-${review.timestamp}-${review.comment}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
+function fetchReviewsFromGoogleSheets() {
+  const url = getGoogleSheetsWebAppUrl();
+  if (!url) return Promise.resolve([]);
+
+  return new Promise((resolve) => {
+    const callbackName = `eliteReviewsCallback_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    const script = document.createElement("script");
+    const separator = url.includes("?") ? "&" : "?";
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      resolve([]);
+    }, 9000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (response) => {
+      cleanup();
+      resolve(Array.isArray(response?.reviews) ? response.reviews : []);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      resolve([]);
+    };
+
+    script.src = `${url}${separator}action=listReviews&callback=${encodeURIComponent(callbackName)}`;
+    document.body.appendChild(script);
+  });
+}
+
+async function loadReviews() {
+  if (cachedReviews) return cachedReviews;
+  const sheetReviews = await fetchReviewsFromGoogleSheets();
+  cachedReviews = mergeReviews(sheetReviews, getLocalReviews(), DEFAULT_REVIEWS);
+  return cachedReviews;
+}
+
+function reviewStars(rating) {
+  const score = Math.max(1, Math.min(5, Number(rating || 5)));
+  return "★".repeat(score) + "☆".repeat(5 - score);
+}
+
+function renderReviews(targetId, reviews) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const items = mergeReviews(reviews || [], getLocalReviews(), DEFAULT_REVIEWS);
+  target.innerHTML = items.slice(0, 12).map((review) => `
+    <article class="review-card">
+      <div class="review-card-head">
+        <div>
+          <strong>${escapeHtml(review.name)}</strong>
+          <span>${escapeHtml(review.source || "Website Review")}</span>
+        </div>
+        <span class="review-stars" aria-label="${review.rating} out of 5">${reviewStars(review.rating)}</span>
+      </div>
+      <p>${escapeHtml(review.comment)}</p>
+      ${review.serviceDate ? `<small>Service date: ${escapeHtml(review.serviceDate)}</small>` : ""}
+    </article>
+  `).join("") || `<p class="notice">No reviews yet.</p>`;
+}
+
+async function saveReviewToGoogleSheets(review) {
+  const url = getGoogleSheetsWebAppUrl();
+  if (!url) throw new Error("Google Sheets URL is not configured");
+
+  await fetch(url, {
+    method: "POST",
+    mode: "no-cors",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify({
+      action: "saveReview",
+      data: normalizeReview(review)
+    })
+  });
+
+  return { success: true, opaque: true };
+}
+
+function setupReviewsSection() {
+  const list = document.getElementById("businessReviews");
+  const form = document.getElementById("reviewForm");
+  const status = document.getElementById("reviewStatus");
+  if (!list) return;
+
+  loadReviews().then((reviews) => renderReviews("businessReviews", reviews));
+
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const review = normalizeReview({
+      reviewId: `RV${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      name: data.get("reviewName"),
+      rating: data.get("reviewRating"),
+      comment: data.get("reviewComment"),
+      serviceDate: data.get("reviewServiceDate"),
+      source: "Website Review"
+    });
+
+    if (!review.comment) {
+      if (status) status.textContent = "Please write your review before sending.";
+      return;
+    }
+
+    if (status) status.textContent = "Saving review...";
+    saveLocalReview(review);
+    cachedReviews = mergeReviews([review], cachedReviews || []);
+    renderReviews("businessReviews", cachedReviews);
+
+    try {
+      await saveReviewToGoogleSheets(review);
+      if (status) status.textContent = "Review saved.";
+      form.reset();
+    } catch (error) {
+      console.warn("Could not save review to Google Sheets:", error);
+      if (status) status.textContent = "Review shown here. Google Sheets is not configured yet.";
+    }
+  });
 }
 
 function setupDirectory(targetId, gender) {
