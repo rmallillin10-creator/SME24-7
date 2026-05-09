@@ -309,8 +309,10 @@ function therapistCard(therapist, options = {}) {
   const bookingInfo = typeof rank === 'number'
     ? '<p class="therapist-bookings">' + bookingCount + ' booking' + (bookingCount === 1 ? '' : 's') + '</p>'
     : '';
+  const availabilityText = therapist.availability || therapist.location || 'Available';
+  const availabilityClass = therapist.availability ? ' availability-glow' : '';
 
-  return '<div class="therapist-card">' +
+  return '<div class="therapist-card' + availabilityClass + '">' +
     '    <div class="therapist-image">' +
       '      <img src="' + displayImage + '" alt="' + therapist.name + '">' +
       rankBadge +
@@ -318,7 +320,7 @@ function therapistCard(therapist, options = {}) {
       '    </div>' +
       '    <div class="therapist-info">' +
       '      <h3>' + therapist.name + '</h3>' +
-      '      <p class="therapist-location">' + (therapist.location || 'Metro Manila') + '</p>' +
+      '      <p class="therapist-availability">Availability: ' + availabilityText + '</p>' +
       '      <p class="therapist-bio">' + (therapist.bio || 'Professional massage therapist') + '</p>' +
       '      <p class="therapist-rate">Rate: ' + (therapist.rate ? '₱' + therapist.rate : 'Contact for rates') + '</p>' +
       bookingInfo +

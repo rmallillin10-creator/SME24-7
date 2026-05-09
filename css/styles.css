@@ -482,7 +482,7 @@ h3 {
   color: #ffffff;
 }
 
-.therapist-location,
+.therapist-availability,
 .therapist-bio,
 .therapist-rate,
 .therapist-specialties {
@@ -492,9 +492,15 @@ h3 {
   line-height: 1.5;
 }
 
-.therapist-location {
+.therapist-availability {
   font-weight: 600;
-  color: #f6f1f1;
+  color: #b7ff9c;
+  text-shadow: 0 0 16px rgba(91, 255, 139, 0.25);
+}
+
+.therapist-card.availability-glow {
+  border-color: rgba(91, 255, 139, 0.35);
+  box-shadow: 0 0 18px rgba(91, 255, 139, 0.18), 0 30px 80px rgba(0, 0, 0, 0.18);
 }
 
 .therapist-rate {
