@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# Replace yourdomain.com with your real published domain before indexing
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: https://rmallillin10-creator.github.io/SME24-7/sitemap.xml
