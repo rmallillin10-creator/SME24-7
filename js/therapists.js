@@ -5,6 +5,7 @@ let therapistData = [
 function getAllTherapists() {
   // Get hardcoded therapists
   const hardcodedTherapists = therapistData;
+  const supabaseTherapists = Array.isArray(window.supabaseTherapists) ? window.supabaseTherapists : [];
   
   // Get therapist drafts from localStorage
   let draftTherapists = [];
@@ -17,6 +18,15 @@ function getAllTherapists() {
   
   // Combine both, with drafts taking precedence for matching IDs
   const allTherapists = [...hardcodedTherapists];
+
+  supabaseTherapists.forEach(therapist => {
+    const existingIndex = allTherapists.findIndex(t => t.id === therapist.id);
+    if (existingIndex >= 0) {
+      allTherapists[existingIndex] = { ...allTherapists[existingIndex], ...therapist };
+    } else {
+      allTherapists.push(therapist);
+    }
+  });
   
   // Add or update therapists from drafts
   draftTherapists.forEach(draft => {

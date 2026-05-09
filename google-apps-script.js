@@ -47,42 +47,26 @@ function doPost(e) {
       result = { error: "Unknown action" };
     }
 
-    // Return response with CORS headers
-    return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Max-Age': '86400'
-      });
+    return jsonResponse(result);
 
   } catch (error) {
     console.error("doPost error:", error);
-    return ContentService
-      .createTextOutput(JSON.stringify({ error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Max-Age': '86400'
-      });
+    return jsonResponse({ success: false, error: error.message });
   }
 }
 
-// Handle OPTIONS preflight requests
 function doGet(e) {
+  return jsonResponse({
+    success: true,
+    message: "SME booking endpoint is live",
+    sheetName: SHEET_NAME
+  });
+}
+
+function jsonResponse(data) {
   return ContentService
-    .createTextOutput('OK')
-    .setMimeType(ContentService.MimeType.TEXT)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Max-Age': '86400'
-    });
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function handleSaveBooking(sheet, bookingData, autoAdjustHeaders) {
@@ -112,17 +96,13 @@ function handleSaveBooking(sheet, bookingData, autoAdjustHeaders) {
   // Append the row
   sheet.appendRow(rowData);
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ success: true, message: "Booking saved successfully" }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return { success: true, message: "Booking saved successfully" };
 }
 
 function handleSaveTherapistCounts(sheet, data) {
   // This would handle saving therapist booking counts
   // For now, just return success
-  return ContentService
-    .createTextOutput(JSON.stringify({ success: true, message: "Therapist counts saved" }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return { success: true, message: "Therapist counts saved" };
 }
 
 function ensureHeaders(sheet, expectedHeaders) {

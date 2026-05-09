@@ -1,200 +1,214 @@
-// Supabase Configuration and Client Initialization
-// Prevent multiple script loading issues
-if (window.supabaseLoaded) {
-  console.warn("Supabase script already loaded");
-} else {
-  window.supabaseLoaded = true;
+// Supabase REST integration. This avoids CDN tracking/ad-blocker issues on GitHub Pages.
+const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
 
-  const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
+function supabaseHeaders(extra = {}) {
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json",
+    ...extra
+  };
+}
 
-  // Initialize Supabase client (requires @supabase/supabase-js library)
-  let supabase = null;
+async function supabaseRequest(path, options = {}) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: supabaseHeaders(options.headers || {})
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Supabase ${response.status}: ${message || response.statusText}`);
+  }
+
+  if (response.status === 204) return null;
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
 
 async function initSupabase() {
-  // If already initialized, return existing client
-  if (supabase) {
-    return supabase;
-  }
-
-  // Supabase library is not available due to tracking prevention
-  console.warn("Supabase library not available due to browser tracking prevention. Using local storage only.");
-  return null;
+  return { mode: "rest", url: SUPABASE_URL };
 }
 
-// Sign in admin with fallback authentication (Supabase disabled due to tracking prevention)
-async function adminSignIn(email, password) {
-  console.log("Attempting admin login with:", email);
-  
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const normalizedPassword = String(password || "").trim();
-
-  // Supabase is disabled due to tracking prevention, use fallback authentication
-  console.log("Using fallback authentication (Supabase disabled)");
-  
-  // Fallback credentials
-  const FALLBACK_CREDENTIALS = {
-    "admin@example.com": "admin123@",
-    "r.mallillin.psa@gmail.com": "admin123@"
-  };
-
-  if (FALLBACK_CREDENTIALS[normalizedEmail] === normalizedPassword) {
-    console.log("Fallback login successful for:", normalizedEmail);
-    return {
-      data: null,
-      error: null,
-      user: {
-        email: normalizedEmail,
-        id: "local-admin",
-        isFallback: true
-      }
-    };
-  }
-
+function settingsToSupabaseRow(settings) {
   return {
-    error: { message: "Invalid email or password." },
-    user: null
+    business_name: settings.business?.name || "",
+    business_address: settings.business?.address || "",
+    business_maps_link: settings.business?.mapsLink || "",
+    business_logo: settings.business?.logo || "",
+    business_service_type: settings.business?.serviceType || "",
+    business_service_area: settings.business?.serviceArea || "",
+    taxi_fare: Number(settings.taxiFare ?? settings.taxiFares?.default ?? 0),
+    taxi_fare_currency: settings.taxiFareCurrency ?? settings.taxiFares?.currency ?? "PHP",
+    taxi_fare_notes: settings.taxiFareNotes ?? settings.taxiFares?.notes ?? "",
+    google_sheets_web_app_url: settings.googleSheetsWebAppUrl || "",
+    service_1_name: settings.services?.[0]?.name || "Whole Body Massage",
+    service_1_price: Number(settings.services?.[0]?.price || 0),
+    service_2_name: settings.services?.[1]?.name || "Sensual Massage",
+    service_2_price: Number(settings.services?.[1]?.price || 0),
+    viber: settings.contacts?.viber || "",
+    wechat: settings.contacts?.wechat || "",
+    kakaotalk: settings.contacts?.kakaotalk || "",
+    telegram: settings.contacts?.telegram || "",
+    whatsapp: settings.contacts?.whatsapp || "",
+    updated_at: new Date().toISOString()
   };
 }
 
-// Fetch site settings from Supabase
+function therapistFromSupabaseRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    gender: row.gender,
+    location: row.location || "",
+    bio: row.bio || "",
+    rate: Number(row.rate || 0),
+    specialties: row.specialties || [],
+    pricing: row.pricing || {},
+    featured: !!row.featured,
+    image: row.image || "images/therapists/default.svg",
+    slides: row.slides || [],
+    images: row.images || row.slides || [],
+    mapUrl: row.map_url || "",
+    availability: row.availability || "24 hours",
+    bookingCount: Number(row.booking_count || 0)
+  };
+}
+
+function therapistToSupabaseRow(therapist) {
+  const slides = therapist.slides || therapist.images || [];
+  return {
+    id: String(therapist.id),
+    name: therapist.name,
+    gender: therapist.gender,
+    location: therapist.location || "",
+    bio: therapist.bio || "",
+    rate: Number(therapist.rate || 0),
+    specialties: therapist.specialties || [],
+    pricing: therapist.pricing || {},
+    featured: !!therapist.featured,
+    image: therapist.image || slides[0] || "images/therapists/default.svg",
+    slides,
+    images: therapist.images || slides,
+    map_url: therapist.mapUrl || therapist.map_url || "",
+    availability: therapist.availability || "24 hours",
+    updated_at: new Date().toISOString()
+  };
+}
+
 async function fetchSiteSettingsFromSupabase() {
-  const client = await initSupabase();
-  if (!client) return null;
-  
   try {
-    const { data, error } = await client
-      .from("site_settings")
-      .select("*")
-      .limit(1)
-      .single();
-    
-    if (error) {
-      console.warn("Could not fetch site settings from Supabase:", error);
-      return null;
-    }
-    
-    return data;
+    const rows = await supabaseRequest("site_settings?select=*&order=updated_at.desc.nullslast&limit=1");
+    return rows?.[0] || null;
   } catch (e) {
-    console.warn("Error fetching site settings:", e);
+    console.warn("Could not fetch site settings from Supabase:", e);
     return null;
   }
 }
 
-// Save site settings to Supabase
 async function saveSiteSettingsToSupabase(settings) {
-  const client = await initSupabase();
-  if (!client) return { error: "Supabase not initialized" };
-  
   try {
-    const { data: existing } = await client
-      .from("site_settings")
-      .select("id")
-      .limit(1)
-      .single();
-    
-    let result;
-    if (existing?.id) {
-      result = await client
-        .from("site_settings")
-        .update({
-          business_name: settings.business?.name,
-          business_address: settings.business?.address,
-          business_maps_link: settings.business?.mapsLink,
-          business_logo: settings.business?.logo,
-          taxi_fare: settings.taxiFare,
-          taxi_fare_currency: settings.taxiFareCurrency,
-          taxi_fare_notes: settings.taxiFareNotes,
-          service_1_price: settings.services?.[0]?.price || 0,
-          service_2_price: settings.services?.[1]?.price || 0,
-          viber: settings.contacts?.viber,
-          wechat: settings.contacts?.wechat,
-          kakaotalk: settings.contacts?.kakaotalk,
-          telegram: settings.contacts?.telegram,
-          whatsapp: settings.contacts?.whatsapp,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", existing.id);
-    } else {
-      result = await client
-        .from("site_settings")
-        .insert([{
-          business_name: settings.business?.name,
-          business_address: settings.business?.address,
-          business_maps_link: settings.business?.mapsLink,
-          business_logo: settings.business?.logo,
-          taxi_fare: settings.taxiFare,
-          taxi_fare_currency: settings.taxiFareCurrency,
-          taxi_fare_notes: settings.taxiFareNotes,
-          service_1_price: settings.services?.[0]?.price || 0,
-          service_2_price: settings.services?.[1]?.price || 0,
-          viber: settings.contacts?.viber,
-          wechat: settings.contacts?.wechat,
-          kakaotalk: settings.contacts?.kakaotalk,
-          telegram: settings.contacts?.telegram,
-          whatsapp: settings.contacts?.whatsapp
-        }]);
+    const row = settingsToSupabaseRow(settings);
+    const existing = await supabaseRequest("site_settings?select=id&limit=1");
+    if (existing?.[0]?.id) {
+      const id = encodeURIComponent(existing[0].id);
+      const data = await supabaseRequest(`site_settings?id=eq.${id}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify(row)
+      });
+      return { data, error: null };
     }
-    
-    return result;
+
+    const data = await supabaseRequest("site_settings", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(row)
+    });
+    return { data, error: null };
   } catch (e) {
     console.error("Error saving site settings:", e);
-    return { error: e.message };
+    return { data: null, error: e.message };
   }
 }
 
-// Fetch all therapists from Supabase
 async function fetchTherapistsFromSupabase() {
-  const client = await initSupabase();
-  if (!client) return [];
-  
   try {
-    const { data, error } = await client
-      .from("therapists")
-      .select("*");
-    
-    if (error) {
-      console.warn("Could not fetch therapists from Supabase:", error);
-      return [];
-    }
-    
-    return data || [];
+    const rows = await supabaseRequest("therapists?select=*&order=created_at.asc");
+    return (rows || []).map(therapistFromSupabaseRow);
   } catch (e) {
-    console.warn("Error fetching therapists:", e);
+    console.warn("Could not fetch therapists from Supabase:", e);
     return [];
   }
 }
 
-// Save therapist to Supabase
 async function saveTherapistToSupabase(therapist) {
-  const client = await initSupabase();
-  if (!client) return { error: "Supabase not initialized" };
-  
   try {
-    const { data, error } = await client
-      .from("therapists")
-      .upsert({
-        id: therapist.id,
-        name: therapist.name,
-        gender: therapist.gender,
-        location: therapist.location,
-        bio: therapist.bio,
-        rate: therapist.rate,
-        specialties: therapist.specialties || [],
-        pricing: therapist.pricing || {},
-        featured: therapist.featured || false,
-        image: therapist.image,
-        slides: therapist.slides || [],
-        map_url: therapist.mapUrl,
-        availability: therapist.availability,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "id" });
-    
-    return { data, error };
+    const data = await supabaseRequest("therapists?on_conflict=id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(therapistToSupabaseRow(therapist))
+    });
+    return { data, error: null };
   } catch (e) {
     console.error("Error saving therapist:", e);
-    return { error: e.message };
+    return { data: null, error: e.message };
   }
 }
 
-} // Close the else block
+async function deleteTherapistFromSupabase(therapistId) {
+  try {
+    const id = encodeURIComponent(therapistId);
+    const data = await supabaseRequest(`therapists?id=eq.${id}`, { method: "DELETE" });
+    return { data, error: null };
+  } catch (e) {
+    console.error("Error deleting therapist:", e);
+    return { data: null, error: e.message };
+  }
+}
+
+function bookingToSupabaseRow(booking) {
+  return {
+    booking_id: booking.bookingId || `BK${Date.now()}`,
+    timestamp: booking.timestamp || new Date().toISOString(),
+    fullname: booking.fullname || "",
+    mobile_number: booking.mobileNumber || "",
+    preferred_service: booking.preferredService || "",
+    preferred_date: booking.preferredDate || null,
+    preferred_time: booking.preferredTime || null,
+    preferred_female_therapist: booking.preferredFemaleTherapist || "",
+    female_therapist_count: Number(booking.femaleTherapistCount || 0),
+    preferred_female_therapist_name: booking.preferredFemaleTherapistName || "",
+    preferred_male_therapist: booking.preferredMaleTherapist || "",
+    male_therapist_count: Number(booking.maleTherapistCount || 0),
+    preferred_male_therapist_name: booking.preferredMaleTherapistName || "",
+    location: booking.location || "",
+    landmark: booking.landmark || "",
+    estimated_service_cost: booking.estimatedServiceCost || "",
+    taxi_fare: booking.taxiFare || "",
+    total_estimate: booking.totalEstimate || "",
+    special_requests: booking.specialRequests || "",
+    terms_accepted: booking.termsAccepted === "Yes",
+    booking_status: booking.bookingStatus || "Pending",
+    source: booking.source || "Website Booking"
+  };
+}
+
+async function saveBookingToSupabase(booking) {
+  try {
+    const data = await supabaseRequest("bookings", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(bookingToSupabaseRow(booking))
+    });
+    return { data, error: null };
+  } catch (e) {
+    console.error("Error saving booking to Supabase:", e);
+    return { data: null, error: e.message };
+  }
+}
+
+async function adminSignIn(email, password) {
+  return fallbackAdminSignIn(email, password);
+}

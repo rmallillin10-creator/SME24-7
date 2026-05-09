@@ -594,6 +594,13 @@ function editTherapist(therapistId) {
         therapistData[index] = updatedTherapist;
       }
     }
+
+    if (typeof saveTherapistToSupabase === 'function') {
+      const supabaseResult = await saveTherapistToSupabase(updatedTherapist);
+      if (supabaseResult.error) {
+        console.warn("Supabase therapist update failed:", supabaseResult.error);
+      }
+    }
     
     closeEditModal();
     renderTherapistLists();
@@ -624,6 +631,12 @@ function deleteTherapist(therapistId) {
         therapistData.splice(index, 1);
       }
     }
+
+    if (typeof deleteTherapistFromSupabase === 'function') {
+      deleteTherapistFromSupabase(therapistId).then((result) => {
+        if (result.error) console.warn("Supabase therapist delete failed:", result.error);
+      });
+    }
     
     renderTherapistLists();
     console.log('Therapist deleted:', therapistId);
@@ -634,8 +647,10 @@ async function initializeAdminPage() {
   // Initialize admin tabs first
   setupAdminTabs();
   
-  // Use local settings only since Supabase CDN is removed
-  console.log("Admin panel initialized with local storage");
+  if (typeof loadSharedDatabaseData === "function") {
+    await loadSharedDatabaseData();
+  }
+  console.log("Admin panel initialized");
   
   loadBusinessProfileForm();
   loadTaxiFareForm();

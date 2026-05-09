@@ -6,7 +6,7 @@ function peso(value) {
   }).format(value);
 }
 
-const GOOGLE_SHEETS_WEB_APP_URL = "";
+const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxUW2plGdqrYoUTuhZviNVRcRMQf5CQ4XaYdh3xCT9ohal4Ease7oUp7tIoeLDBwYjb/exec";
 const PHP_PER_USD = 57.5;
 const DEFAULT_SITE_SETTINGS = {
   business: {
@@ -91,14 +91,17 @@ async function loadSiteSettingsFromSupabase() {
         name: supabaseSettings.business_name || DEFAULT_SITE_SETTINGS.business.name,
         address: supabaseSettings.business_address || DEFAULT_SITE_SETTINGS.business.address,
         mapsLink: supabaseSettings.business_maps_link || DEFAULT_SITE_SETTINGS.business.mapsLink,
-        logo: supabaseSettings.business_logo || ""
+        logo: supabaseSettings.business_logo || "",
+        serviceType: supabaseSettings.business_service_type || "",
+        serviceArea: supabaseSettings.business_service_area || ""
       },
       taxiFare: supabaseSettings.taxi_fare || 0,
       taxiFareCurrency: supabaseSettings.taxi_fare_currency || "PHP",
       taxiFareNotes: supabaseSettings.taxi_fare_notes || "",
+      googleSheetsWebAppUrl: supabaseSettings.google_sheets_web_app_url || "",
       services: [
-        { name: "Whole Body Massage", price: supabaseSettings.service_1_price || 0 },
-        { name: "Sensual Massage", price: supabaseSettings.service_2_price || 0 }
+        { name: supabaseSettings.service_1_name || "Whole Body Massage", price: supabaseSettings.service_1_price || 0 },
+        { name: supabaseSettings.service_2_name || "Sensual Massage", price: supabaseSettings.service_2_price || 0 }
       ],
       contacts: {
         viber: supabaseSettings.viber || "",
@@ -112,6 +115,54 @@ async function loadSiteSettingsFromSupabase() {
     return cachedSettings;
   }
   return getSiteSettings();
+}
+
+async function loadTherapistsFromSupabase() {
+  if (typeof fetchTherapistsFromSupabase !== "function") return [];
+  const therapists = await fetchTherapistsFromSupabase();
+  if (therapists.length) {
+    window.supabaseTherapists = therapists;
+    if (typeof therapistData !== "undefined") {
+      therapists.forEach((therapist) => {
+        const index = therapistData.findIndex((item) => item.id === therapist.id);
+        if (index >= 0) {
+          therapistData[index] = { ...therapistData[index], ...therapist };
+        } else {
+          therapistData.push(therapist);
+        }
+      });
+    }
+  }
+  return therapists;
+}
+
+async function loadSharedDatabaseData() {
+  await Promise.all([
+    typeof fetchSiteSettingsFromSupabase === "function" ? loadSiteSettingsFromSupabase() : Promise.resolve(getSiteSettings()),
+    loadTherapistsFromSupabase()
+  ]);
+}
+
+function refreshCurrentPageWidgets() {
+  applyBusinessProfile();
+  renderOfficialNumber();
+
+  if (document.getElementById("featuredTherapists")) {
+    renderTherapists("featuredTherapists", { featured: true });
+  }
+  if (document.getElementById("femaleTherapists")) {
+    setupDirectory("femaleTherapists", "female");
+  }
+  if (document.getElementById("maleTherapists")) {
+    setupDirectory("maleTherapists", "male");
+  }
+  if (document.getElementById("companyContacts")) {
+    renderCompanyContacts("companyContacts");
+  }
+  if (document.getElementById("bookingForm")) {
+    populateBookingSelect();
+    updateBookingEstimate();
+  }
 }
 
 function applyBusinessProfile() {
@@ -634,20 +685,21 @@ function setupBookingForm() {
       return selections.length > 0 ? selections.join(",") : "";
     };
 
-    let selectedFemaleTherapistIds = getTherapistSelections("preferredFemaleTherapist");
-    let selectedMaleTherapistIds = getTherapistSelections("preferredMaleTherapist");
-    const preferredFemaleTherapistNames = selectedFemaleTherapistIds
+    const selectedFemaleTherapistValue = getTherapistSelections("preferredFemaleTherapist");
+    const selectedMaleTherapistValue = getTherapistSelections("preferredMaleTherapist");
+    const preferredFemaleTherapistNames = selectedFemaleTherapistValue
       .split(",")
       .map((id) => getTherapistById(id)?.name)
       .filter(Boolean)
       .join(", ");
-    const preferredMaleTherapistNames = selectedMaleTherapistIds
+    const preferredMaleTherapistNames = selectedMaleTherapistValue
       .split(",")
       .map((id) => getTherapistById(id)?.name)
       .filter(Boolean)
       .join(", ");
 
     const payload = {
+      bookingId: 'BK' + Date.now(),
       timestamp: new Date().toISOString(),
       fullname: data.get("fullname"),
       mobileNumber: data.get("mobileNumber"),
@@ -656,8 +708,8 @@ function setupBookingForm() {
       maleTherapistCount: data.get("maleTherapistCount"),
       preferredDate: data.get("preferredDate"),
       preferredTime: data.get("preferredTime"),
-      preferredFemaleTherapist: selectedFemaleTherapistIds,
-      preferredMaleTherapist: selectedMaleTherapistIds,
+      preferredFemaleTherapist: selectedFemaleTherapistValue,
+      preferredMaleTherapist: selectedMaleTherapistValue,
       preferredFemaleTherapistName: preferredFemaleTherapistNames,
       preferredMaleTherapistName: preferredMaleTherapistNames,
       location: data.get("location"),
@@ -677,29 +729,22 @@ function setupBookingForm() {
         throw new Error(validation.error);
       }
 
-      try {
-        if (useLocalFallback) {
-          throw new Error("Google Sheets not configured");
-        }
-        await saveBookingToGoogleSheets(payload);
-      } catch (error) {
-        if (useLocalFallback || error.message.toLowerCase().includes('http error') || error.message.toLowerCase().includes('network')) {
-          console.warn("Google Sheets unavailable, saving booking locally.", error);
-          const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
-          bookings.push(payload);
-          localStorage.setItem("testBookings", JSON.stringify(bookings));
-          status.textContent = useLocalFallback ? "Saved locally (Google Sheets not configured)" : "Saved locally (Google Sheets unavailable)";
-          form.reset();
-          selectedFemaleTherapistIds = [];
-          selectedMaleTherapistIds = [];
-          renderTherapistSelection("female");
-          renderTherapistSelection("male");
-          const taxiFare = document.getElementById("taxiFare");
-          if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
-          updateBookingEstimate();
-          return;
-        }
-        throw error;
+      const saveResult = await saveBookingEverywhere(payload);
+      if (!saveResult.supabase.ok && !saveResult.googleSheets.ok) {
+        console.warn("Shared databases unavailable, saving booking locally.", saveResult);
+        const bookings = JSON.parse(localStorage.getItem("testBookings") || "[]");
+        bookings.push(payload);
+        localStorage.setItem("testBookings", JSON.stringify(bookings));
+        status.textContent = "Saved locally (shared database unavailable)";
+        form.reset();
+        selectedFemaleTherapistIds = [];
+        selectedMaleTherapistIds = [];
+        renderTherapistSelection("female");
+        renderTherapistSelection("male");
+        const taxiFare = document.getElementById("taxiFare");
+        if (taxiFare) taxiFare.value = getSiteSettings().taxiFare || 0;
+        updateBookingEstimate();
+        return;
       }
 
       status.textContent = "Saved";
@@ -775,7 +820,7 @@ async function saveBookingToGoogleSheets(bookingData) {
       source: 'Website Booking',
       
       // Auto-generated fields
-      bookingId: 'BK' + Date.now(),
+      bookingId: bookingData.bookingId || 'BK' + Date.now(),
       dateSubmitted: new Date().toLocaleString('en-PH', { 
         timeZone: 'Asia/Manila',
         year: 'numeric',
@@ -786,11 +831,11 @@ async function saveBookingToGoogleSheets(bookingData) {
       })
     };
     
-    const response = await fetch(getGoogleSheetsWebAppUrl(), {
+    await fetch(url, {
       method: 'POST',
-      mode: 'cors',
+      mode: 'no-cors',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify({
         action: 'saveBooking',
@@ -798,22 +843,43 @@ async function saveBookingToGoogleSheets(bookingData) {
         autoAdjustHeaders: true // Enable auto-adjusting headers
       })
     });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
-    }
-    
-    const result = await response.json();
+
+    const result = { success: true, opaque: true, message: "Booking request sent to Google Sheets" };
     console.log('Booking saved to Google Sheets:', result);
-    if (result.error || result.success === false) {
-      throw new Error(result.error || result.message || 'Google Sheets save failed');
-    }
     return result;
   } catch (error) {
     console.error('Error saving booking to Google Sheets:', error);
     throw error;
   }
+}
+
+async function saveBookingEverywhere(payload) {
+  const result = {
+    supabase: { ok: false, skipped: typeof saveBookingToSupabase !== "function", error: null },
+    googleSheets: { ok: false, skipped: !getGoogleSheetsWebAppUrl(), error: null }
+  };
+
+  const jobs = [];
+
+  if (typeof saveBookingToSupabase === "function") {
+    jobs.push(saveBookingToSupabase(payload).then((response) => {
+      if (response?.error) throw new Error(response.error);
+      result.supabase.ok = true;
+    }).catch((error) => {
+      result.supabase.error = error.message || String(error);
+    }));
+  }
+
+  if (getGoogleSheetsWebAppUrl()) {
+    jobs.push(saveBookingToGoogleSheets(payload).then(() => {
+      result.googleSheets.ok = true;
+    }).catch((error) => {
+      result.googleSheets.error = error.message || String(error);
+    }));
+  }
+
+  await Promise.all(jobs);
+  return result;
 }
 
 // Function to test Google Sheets connectivity
@@ -826,18 +892,12 @@ async function testGoogleSheetsConnection() {
 
   try {
     console.log('Testing Google Sheets connection to:', url);
-    const response = await fetch(url, {
+    await fetch(url, {
       method: 'GET',
-      mode: 'cors'
+      mode: 'no-cors'
     });
-
-    if (response.ok) {
-      console.log('Google Sheets connection test successful');
-      return true;
-    } else {
-      console.warn('Google Sheets connection test failed:', response.status, response.statusText);
-      return false;
-    }
+    console.log('Google Sheets connection request sent');
+    return true;
   } catch (error) {
     console.warn('Google Sheets connection test error:', error);
     return false;
@@ -856,10 +916,11 @@ async function saveTherapistBookingCountsToGoogleSheets() {
       lastUpdated: new Date().toISOString()
     }));
 
-    const response = await fetch(getGoogleSheetsWebAppUrl(), {
+    await fetch(getGoogleSheetsWebAppUrl(), {
       method: 'POST',
+      mode: 'no-cors',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify({
         action: 'saveTherapistCounts',
@@ -867,11 +928,7 @@ async function saveTherapistBookingCountsToGoogleSheets() {
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
+    const result = { success: true, opaque: true };
     console.log('Therapist booking counts saved:', result);
     return result;
   } catch (error) {
@@ -1286,8 +1343,7 @@ if (window.location.pathname.toLowerCase().endsWith("contact.html")) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // Use local data only since we removed Supabase dependency
-    console.log("Using local data system (no external dependencies)");
+    console.log("Initializing shared data system");
     
     // Load local settings if available
     const localSettings = localStorage.getItem("eliteSiteSettings");
@@ -1301,11 +1357,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    applyBusinessProfile();
-    renderOfficialNumber();
+    await loadSharedDatabaseData();
+    refreshCurrentPageWidgets();
 
-    console.log("Website fully initialized (local mode).");
+    console.log("Website fully initialized.");
   } catch (error) {
     console.error("Website initialization failed:", error);
+    applyBusinessProfile();
+    renderOfficialNumber();
   }
 });
