@@ -274,9 +274,8 @@ function renderFeaturedTherapists(targetId, count = 4) {
 
   const featured = therapists.filter((therapist) => therapist.featured);
   const selection = shuffleArray(featured.length ? featured : therapists);
-  const fallbackNotice = featured.length === 0 ? `<p class="notice">No featured therapists yet. Showing a random available therapist.</p>` : "";
 
-  target.innerHTML = `${fallbackNotice}${selection.slice(0, count).map((therapist) => {
+  target.innerHTML = selection.slice(0, count).map((therapist) => {
     const displayImage = getTherapistImages(therapist)[0] || 'images/therapists/default.svg';
     return `
       <article class="featured-therapist-card">
@@ -284,7 +283,7 @@ function renderFeaturedTherapists(targetId, count = 4) {
         <div class="featured-therapist-name">${therapist.name}</div>
       </article>
     `;
-  }).join("")}`;
+  }).join("");
 }
 
 function renderTherapists(targetId, options = {}) {
