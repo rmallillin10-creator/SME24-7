@@ -57,6 +57,12 @@ function settingsToSupabaseRow(settings) {
 }
 
 function therapistFromSupabaseRow(row) {
+  const images = [
+    row.image,
+    ...(row.images || []),
+    ...(row.slides || [])
+  ].filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
+
   return {
     id: row.id,
     name: row.name,
@@ -67,9 +73,9 @@ function therapistFromSupabaseRow(row) {
     specialties: row.specialties || [],
     pricing: row.pricing || {},
     featured: !!row.featured,
-    image: row.image || "images/therapists/default.svg",
+    image: images[0] || "images/therapists/default.svg",
     slides: row.slides || [],
-    images: row.images || row.slides || [],
+    images,
     mapUrl: row.map_url || "",
     availability: row.availability || "24 hours",
     bookingCount: Number(row.booking_count || 0)
@@ -77,8 +83,13 @@ function therapistFromSupabaseRow(row) {
 }
 
 function therapistToSupabaseRow(therapist) {
-  const slides = therapist.slides || therapist.images || [];
-  return {
+  const images = [
+    therapist.image,
+    ...(therapist.images || []),
+    ...(therapist.slides || [])
+  ].filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
+  const slides = therapist.slides?.length ? therapist.slides : images.slice(1);
+  const row = {
     id: String(therapist.id),
     name: therapist.name,
     gender: therapist.gender,
@@ -88,13 +99,19 @@ function therapistToSupabaseRow(therapist) {
     specialties: therapist.specialties || [],
     pricing: therapist.pricing || {},
     featured: !!therapist.featured,
-    image: therapist.image || slides[0] || "images/therapists/default.svg",
+    image: images[0] || "images/therapists/default.svg",
     slides,
-    images: therapist.images || slides,
+    images,
     map_url: therapist.mapUrl || therapist.map_url || "",
     availability: therapist.availability || "24 hours",
     updated_at: new Date().toISOString()
   };
+
+  if (therapist.bookingCount !== undefined || therapist.booking_count !== undefined) {
+    row.booking_count = Number(therapist.bookingCount || therapist.booking_count || 0);
+  }
+
+  return row;
 }
 
 async function fetchSiteSettingsFromSupabase() {
@@ -205,6 +222,31 @@ async function saveBookingToSupabase(booking) {
     return { data, error: null };
   } catch (e) {
     console.error("Error saving booking to Supabase:", e);
+    return { data: null, error: e.message };
+  }
+}
+
+async function incrementTherapistBookingCountsInSupabase(therapistIds) {
+  try {
+    const uniqueIds = [...new Set((therapistIds || []).map((id) => String(id).trim()).filter(Boolean))];
+    const updates = uniqueIds.map(async (therapistId) => {
+      const id = encodeURIComponent(therapistId);
+      const rows = await supabaseRequest(`therapists?select=id,booking_count&id=eq.${id}&limit=1`);
+      const nextCount = Number(rows?.[0]?.booking_count || 0) + 1;
+      return supabaseRequest(`therapists?id=eq.${id}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          booking_count: nextCount,
+          updated_at: new Date().toISOString()
+        })
+      });
+    });
+
+    const data = await Promise.all(updates);
+    return { data, error: null };
+  } catch (e) {
+    console.error("Error updating therapist booking counts:", e);
     return { data: null, error: e.message };
   }
 }

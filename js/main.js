@@ -204,7 +204,20 @@ function formatAvailability(availability) {
 
 function getTherapistBookings() {
   try {
-    return JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+    const localBookings = JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+    const sharedBookings = {};
+    if (typeof getAllTherapists === "function") {
+      getAllTherapists().forEach((therapist) => {
+        const count = Number(therapist.bookingCount || 0);
+        if (count > 0) sharedBookings[therapist.id] = count;
+      });
+    }
+
+    Object.entries(localBookings).forEach(([therapistId, count]) => {
+      sharedBookings[therapistId] = Math.max(Number(sharedBookings[therapistId] || 0), Number(count || 0));
+    });
+
+    return sharedBookings;
   } catch {
     return {};
   }
@@ -234,7 +247,7 @@ function renderFeaturedTherapists(targetId, count = 4) {
   }
   
   target.innerHTML = featured.slice(0, count).map((therapist) => {
-    const displayImage = therapist.image || (therapist.images && therapist.images.length > 0 ? therapist.images[0] : 'images/therapists/default.svg');
+    const displayImage = getTherapistImages(therapist)[0] || 'images/therapists/default.svg';
     return `
       <article class="featured-therapist-card">
         <img src="${displayImage}" alt="${therapist.name}">
@@ -255,8 +268,10 @@ function renderTherapists(targetId, options = {}) {
 }
 
 function therapistCard(therapist, options = {}) {
-  const displayImage = therapist.image || (therapist.images && therapist.images.length > 0 ? therapist.images[0] : 'images/therapists/default.svg');
-  const hasMultipleImages = therapist.images && therapist.images.length > 1;
+  const images = getTherapistImages(therapist);
+  const displayImage = images[0] || 'images/therapists/default.svg';
+  const hasPhotoGallery = images.length > 0;
+  const hasMultipleImages = images.length > 1;
   const rank = options.rank;
   const bookingCount = Number(options.bookingCount || 0);
   const rankBadge = typeof rank === 'number'
@@ -266,11 +281,11 @@ function therapistCard(therapist, options = {}) {
     ? '<p class="therapist-bookings">' + bookingCount + ' booking' + (bookingCount === 1 ? '' : 's') + '</p>'
     : '';
 
-  return '<div class="therapist-card" onclick="incrementTherapistBooking(\'' + therapist.id + '\')">' +
+  return '<div class="therapist-card">' +
     '    <div class="therapist-image">' +
       '      <img src="' + displayImage + '" alt="' + therapist.name + '">' +
       rankBadge +
-      (hasMultipleImages ? '<div class="more-images-indicator">+' + (therapist.images.length - 1) + ' more</div>' : '') +
+      (hasMultipleImages ? '<div class="more-images-indicator">+' + (images.length - 1) + ' more</div>' : '') +
       '    </div>' +
       '    <div class="therapist-info">' +
       '      <h3>' + therapist.name + '</h3>' +
@@ -281,8 +296,8 @@ function therapistCard(therapist, options = {}) {
       '      <div class="therapist-specialties">' + ((therapist.specialties || []).join(', ')) + '</div>' +
       '    </div>' +
       '    <div class="therapist-actions">' +
-      '      <button class="btn-primary" onclick="selectTherapist(\'' + therapist.id + '\')">Select & Book</button>' +
-      (hasMultipleImages ? '<button class="btn-secondary" onclick="viewTherapistPhotos(\'' + therapist.id + '\')">View Photos</button>' : '') +
+      '      <button class="btn-primary" type="button" onclick="selectTherapist(event, \'' + therapist.id + '\')">Select & Book</button>' +
+      (hasPhotoGallery ? '<button class="btn-secondary" type="button" onclick="viewTherapistPhotos(event, \'' + therapist.id + '\')">View Photos</button>' : '') +
       '    </div>' +
       '  </div>';
 }
@@ -323,7 +338,12 @@ function setupDirectory(targetId, gender) {
 }
 
 function getTherapistImages(therapist) {
-  return [therapist.image, ...(therapist.slides || [])].filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
+  if (!therapist) return [];
+  return [
+    therapist.image,
+    ...(therapist.images || []),
+    ...(therapist.slides || [])
+  ].filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
 }
 
 function closeTherapistGallery() {
@@ -367,10 +387,20 @@ function openTherapistGallery(therapist) {
 }
 
 // View therapist photos function
-function viewTherapistPhotos(therapistId) {
+function viewTherapistPhotos(event, therapistId) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
   const therapist = getTherapistById(therapistId);
   if (!therapist) return;
   openTherapistGallery(therapist);
+}
+
+function selectTherapist(event, therapistId) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  if (!therapistId) return;
+  const bookingPath = window.location.pathname.toLowerCase().includes("/admin/") ? "../booking.html" : "booking.html";
+  window.location.href = `${bookingPath}?therapist=${encodeURIComponent(therapistId)}`;
 }
 
 function attachTherapistGallery(scope = document) {
@@ -747,6 +777,8 @@ function setupBookingForm() {
         return;
       }
 
+      updateSelectedTherapistBookingCounts(payload);
+
       status.textContent = "Saved";
       form.reset();
       selectedFemaleTherapistIds = [];
@@ -880,6 +912,36 @@ async function saveBookingEverywhere(payload) {
 
   await Promise.all(jobs);
   return result;
+}
+
+function getSelectedTherapistIdsFromBooking(payload) {
+  return [
+    ...String(payload.preferredFemaleTherapist || "").split(","),
+    ...String(payload.preferredMaleTherapist || "").split(",")
+  ].map((id) => id.trim()).filter(Boolean);
+}
+
+function updateSelectedTherapistBookingCounts(payload) {
+  const therapistIds = getSelectedTherapistIdsFromBooking(payload);
+  if (!therapistIds.length) return;
+
+  try {
+    const bookings = JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+    therapistIds.forEach((therapistId) => {
+      bookings[therapistId] = Number(bookings[therapistId] || 0) + 1;
+      const therapist = getTherapistById(therapistId);
+      if (therapist) therapist.bookingCount = Math.max(Number(therapist.bookingCount || 0), bookings[therapistId]);
+    });
+    localStorage.setItem("eliteTherapistBookings", JSON.stringify(bookings));
+  } catch (e) {
+    console.warn("Could not update local therapist ranking counts:", e);
+  }
+
+  if (typeof incrementTherapistBookingCountsInSupabase === "function") {
+    incrementTherapistBookingCountsInSupabase(therapistIds).then((result) => {
+      if (result?.error) console.warn("Could not update Supabase therapist ranking counts:", result.error);
+    });
+  }
 }
 
 // Function to test Google Sheets connectivity

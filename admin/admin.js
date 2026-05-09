@@ -254,8 +254,9 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
     bio: data.get("therapistBio").trim(),
     availability: data.get("therapistAvailability").trim(),
     mapUrl: data.get("therapistMapUrl").trim(),
-    image: profilePicture || "images/therapists/default.svg",
+    image: profilePicture || slides[0] || "images/therapists/default.svg",
     slides: slides,
+    images: [profilePicture, ...slides].filter(Boolean),
     pricing: { 1: rateValue },
     featured: false,
     createdAt: new Date().toISOString()
@@ -337,7 +338,18 @@ function clearTherapistDrafts() {
 // Get therapist booking data
 function getTherapistBookings() {
   try {
-    return JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+    const localBookings = JSON.parse(localStorage.getItem("eliteTherapistBookings") || "{}");
+    const bookings = {};
+    if (typeof getAllTherapists === "function") {
+      getAllTherapists().forEach((therapist) => {
+        const count = Number(therapist.bookingCount || 0);
+        if (count > 0) bookings[therapist.id] = count;
+      });
+    }
+    Object.entries(localBookings).forEach(([therapistId, count]) => {
+      bookings[therapistId] = Math.max(Number(bookings[therapistId] || 0), Number(count || 0));
+    });
+    return bookings;
   } catch (e) {
     console.warn("Could not load therapist bookings:", e);
     return {};
@@ -508,7 +520,9 @@ function editTherapist(therapistId) {
   // Handle multiple image uploads
   const imageInput = document.getElementById('editImages');
   const imageGallery = document.getElementById('editImageGallery');
-  let currentImages = therapist.images || [];
+  let currentImages = typeof getTherapistImages === 'function'
+    ? getTherapistImages(therapist)
+    : [therapist.image, ...(therapist.images || []), ...(therapist.slides || [])].filter(Boolean);
   let selectedImageIndex = 0;
   
   if (imageInput && imageGallery) {
@@ -579,7 +593,8 @@ function editTherapist(therapistId) {
       specialties: document.getElementById('editSpecialties').value.split(',').map(s => s.trim()).filter(s => s),
       availability: document.getElementById('editAvailability').value.trim(),
       image: currentImages.length > 0 ? currentImages[selectedImageIndex] : therapist.image,
-      images: currentImages
+      images: currentImages,
+      slides: currentImages.filter((image) => image !== currentImages[selectedImageIndex])
     };
     
     // Update in localStorage
