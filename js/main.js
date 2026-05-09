@@ -46,16 +46,7 @@ let selectedFemaleTherapistIds = [];
 let selectedMaleTherapistIds = [];
 let cachedReviews = null;
 
-const DEFAULT_REVIEWS = [
-  {
-    reviewId: "google-map-summary",
-    name: "Google Maps clients",
-    rating: 5,
-    comment: "Client feedback from the public Google Maps profile can be imported into the Reviews sheet and displayed here.",
-    source: "Google Maps",
-    timestamp: "2026-05-09T00:00:00+08:00"
-  }
-];
+const DEFAULT_REVIEWS = [];
 
 function getSiteSettings() {
   // Return cached settings immediately
