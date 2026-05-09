@@ -45,48 +45,13 @@
         <div class="form-grid">
           <div class="field"><label for="fullname">Fullname</label><input id="fullname" name="fullname" required></div>
           <div class="field"><label for="mobileNumber">Mobile Number</label><input id="mobileNumber" name="mobileNumber" required></div>
-          <div class="field">
-            <label for="preferredService">Preferred Service</label>
-            <select id="preferredService" name="preferredService" required>
-              <option value="">Choose service</option>
-              <option>Whole Body Massage</option>
-              <option>Sensual Massage</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="femaleTherapistCount">Female Therapist Count</label>
-            <select id="femaleTherapistCount" name="femaleTherapistCount" required>
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="maleTherapistCount">Male Therapist Count</label>
-            <select id="maleTherapistCount" name="maleTherapistCount" required>
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Preferred Female Therapists</label>
-            <div id="femaleTherapistSelector" class="therapist-selection"></div>
-            <input type="hidden" id="preferredFemaleTherapist" name="preferredFemaleTherapist">
-          </div>
-          <div class="field">
-            <label>Preferred Male Therapists</label>
-            <div id="maleTherapistSelector" class="therapist-selection"></div>
-            <input type="hidden" id="preferredMaleTherapist" name="preferredMaleTherapist">
-          </div>
+          <div class="field"><label for="maleTherapistCount">Male Therapist Count</label><select id="maleTherapistCount" name="maleTherapistCount" required><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+          <div class="field"><label for="femaleTherapistCount">Female Therapist Count</label><select id="femaleTherapistCount" name="femaleTherapistCount" required><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+          <div class="field"><label>Preferred Male Therapists</label><div id="maleTherapistSelector" class="therapist-selection"></div><input type="hidden" id="preferredMaleTherapist" name="preferredMaleTherapist"></div>
+          <div class="field"><label>Preferred Female Therapists</label><div id="femaleTherapistSelector" class="therapist-selection"></div><input type="hidden" id="preferredFemaleTherapist" name="preferredFemaleTherapist"></div>
           <div class="field"><label for="preferredDate">Preferred Date</label><input id="preferredDate" name="preferredDate" type="date" required><small class="field-note">Use the calendar picker to choose the appointment day, month, and year.</small></div>
           <div class="field"><label for="preferredTime">Preferred Time (24-hour)</label><input id="preferredTime" name="preferredTime" type="time" step="1800" required><small class="field-note">Use the time picker for a clear 24-hour appointment slot. Active field glows for easier selection.</small></div>
+          <div class="field"><label for="preferredService">Preferred Service</label><select id="preferredService" name="preferredService" required><option value="">Choose service</option><option>Whole Body Massage</option><option>Sensual Massage</option></select></div>
           <div class="field"><label for="taxiFarePerTherapist">Taxi Fare per Therapist</label><input id="taxiFarePerTherapist" name="taxiFarePerTherapist" type="number" readonly></div>
           <div class="field"><label for="taxiFare">Taxi Fare</label><input id="taxiFare" name="taxiFare" type="number" min="0" step="1" value="0" readonly></div>
           <div class="field"><label for="estimatedServiceCost">Estimated Service Cost</label><input id="estimatedServiceCost" name="estimatedServiceCost" readonly></div>
