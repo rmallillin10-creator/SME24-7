@@ -139,8 +139,8 @@ async function loadSiteSettingsFromSupabase() {
 async function loadTherapistsFromSupabase() {
   if (typeof fetchTherapistsFromSupabase !== "function") return [];
   const therapists = await fetchTherapistsFromSupabase();
+  window.supabaseTherapists = therapists;
   if (therapists.length) {
-    window.supabaseTherapists = therapists;
     if (typeof therapistData !== "undefined") {
       therapists.forEach((therapist) => {
         const index = therapistData.findIndex((item) => item.id === therapist.id);

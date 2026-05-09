@@ -15,6 +15,60 @@ const DEFAULT_THERAPIST_RATE_BY_GENDER = {
   male: 2200
 };
 
+let adminRefreshInterval = null;
+
+function adminUpdateTime() {
+  return new Date().toLocaleTimeString("en-PH", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function setAdminStatus(target, message) {
+  if (!target) return;
+  target.textContent = `${message} Last updated ${adminUpdateTime()}.`;
+}
+
+async function refreshAdminPanel(options = {}) {
+  const { syncFromSupabase = false, reloadForms = false } = options;
+
+  if (syncFromSupabase && typeof loadSharedDatabaseData === "function") {
+    await loadSharedDatabaseData();
+  }
+
+  applyBusinessProfile();
+  renderOfficialNumber();
+  renderTherapistLists();
+
+  if (reloadForms) {
+    loadBusinessProfileForm();
+    loadTaxiFareForm();
+  }
+}
+
+function setupAdminAutoRefresh() {
+  window.addEventListener("focus", () => {
+    refreshAdminPanel({ syncFromSupabase: true }).catch((error) => {
+      console.warn("Admin focus refresh failed:", error);
+    });
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (["eliteSiteSettings", "eliteTherapistDrafts", "eliteTherapistBookings"].includes(event.key)) {
+      refreshAdminPanel().catch((error) => {
+        console.warn("Admin storage refresh failed:", error);
+      });
+    }
+  });
+
+  window.clearInterval(adminRefreshInterval);
+  adminRefreshInterval = window.setInterval(() => {
+    refreshAdminPanel({ syncFromSupabase: true }).catch((error) => {
+      console.warn("Admin background refresh failed:", error);
+    });
+  }, 30000);
+}
+
 function getDefaultTherapistRate(gender) {
   return DEFAULT_THERAPIST_RATE_BY_GENDER[gender] || DEFAULT_THERAPIST_RATE_BY_GENDER.female;
 }
@@ -212,18 +266,18 @@ function setupFormSubmissions() {
       try {
         const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
         if (supabaseResult.error) {
-          businessProfileStatus.textContent = "✅ Business profile saved locally (Supabase sync failed)";
+          setAdminStatus(businessProfileStatus, "Business profile saved locally (Supabase sync failed).");
         } else {
-          businessProfileStatus.textContent = "✅ Business profile saved successfully!";
+          setAdminStatus(businessProfileStatus, "Business profile saved successfully.");
         }
       } catch (e) {
-        businessProfileStatus.textContent = "✅ Business profile saved locally";
+        setAdminStatus(businessProfileStatus, "Business profile saved locally.");
       }
     } else {
-      businessProfileStatus.textContent = "✅ Business profile saved successfully!";
+      setAdminStatus(businessProfileStatus, "Business profile saved successfully.");
     }
     
-    applyBusinessProfile();
+    await refreshAdminPanel({ reloadForms: false });
   });
 
   // Taxi fare form submission
@@ -254,16 +308,18 @@ function setupFormSubmissions() {
       try {
         const supabaseResult = await saveSiteSettingsToSupabase(nextSettings);
         if (supabaseResult.error) {
-          taxiFareStatus.textContent = "✅ Taxi fares saved locally (Supabase sync failed)";
+          setAdminStatus(taxiFareStatus, "Taxi fares saved locally (Supabase sync failed).");
         } else {
-          taxiFareStatus.textContent = "✅ Taxi fares saved successfully!";
+          setAdminStatus(taxiFareStatus, "Taxi fares saved successfully.");
         }
       } catch (e) {
-        taxiFareStatus.textContent = "✅ Taxi fares saved locally";
+        setAdminStatus(taxiFareStatus, "Taxi fares saved locally.");
       }
     } else {
-      taxiFareStatus.textContent = "✅ Taxi fares saved successfully!";
+      setAdminStatus(taxiFareStatus, "Taxi fares saved successfully.");
     }
+
+    await refreshAdminPanel({ reloadForms: false });
   });
 }
 
@@ -298,12 +354,12 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   const rateValue = Number(data.get("therapistRate")) || getDefaultTherapistRate(selectedGender);
   const therapistId = Date.now().toString();
 
-  therapistDraftStatus.textContent = "Uploading therapist photos to Supabase...";
+  setAdminStatus(therapistDraftStatus, "Uploading therapist photos to Supabase...");
   let uploadedImages = [];
   try {
     uploadedImages = await buildTherapistImageUrls(therapistId);
   } catch (error) {
-    therapistDraftStatus.textContent = "⚠️ Photo upload failed: " + error.message;
+    setAdminStatus(therapistDraftStatus, "Photo upload failed: " + error.message);
     console.error("Supabase image upload failed:", error);
     return;
   }
@@ -327,7 +383,7 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
     createdAt: new Date().toISOString()
   };
   
-  therapistDraftStatus.textContent = "Saving therapist to Supabase...";
+  setAdminStatus(therapistDraftStatus, "Saving therapist to Supabase...");
   let supabaseResult = { error: "Supabase not available" };
   if (typeof saveTherapistToSupabase === 'function') {
     try {
@@ -339,10 +395,10 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   }
   
   if (supabaseResult.error) {
-    therapistDraftStatus.textContent = "⚠️ Supabase therapist save failed: " + supabaseResult.error;
+    setAdminStatus(therapistDraftStatus, "Supabase therapist save failed: " + supabaseResult.error);
     return;
   } else {
-    therapistDraftStatus.textContent = "✅ Therapist saved successfully!";
+    setAdminStatus(therapistDraftStatus, "Therapist saved successfully.");
     try {
       saveLocalTherapistDraft(therapist);
     } catch (storageError) {
@@ -363,6 +419,7 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   therapistDraftForm.reset();
   renderTherapistImagePreview();
   updateTherapistRateDefault();
+  await refreshAdminPanel({ syncFromSupabase: true });
 });
 
 // Function to clear therapist drafts when storage is full
@@ -660,7 +717,7 @@ function editTherapist(therapistId) {
     }
     
     closeEditModal();
-    renderTherapistLists();
+    await refreshAdminPanel({ syncFromSupabase: true });
     console.log('Therapist updated:', updatedTherapist);
   };
 }
@@ -674,7 +731,7 @@ function closeEditModal() {
 }
 
 // Delete therapist
-function deleteTherapist(therapistId) {
+async function deleteTherapist(therapistId) {
   if (confirm('Are you sure you want to delete this therapist? This action cannot be undone.')) {
     // Remove from localStorage
     const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
@@ -690,12 +747,12 @@ function deleteTherapist(therapistId) {
     }
 
     if (typeof deleteTherapistFromSupabase === 'function') {
-      deleteTherapistFromSupabase(therapistId).then((result) => {
+      await deleteTherapistFromSupabase(therapistId).then((result) => {
         if (result.error) console.warn("Supabase therapist delete failed:", result.error);
       });
     }
     
-    renderTherapistLists();
+    await refreshAdminPanel({ syncFromSupabase: true });
     console.log('Therapist deleted:', therapistId);
   }
 }
@@ -715,10 +772,11 @@ async function initializeAdminPage() {
   setupImagePreviews();
   setupFormSubmissions();
   setupTherapistRateDefaults();
+  setupAdminAutoRefresh();
   renderTherapistImagePreview();
   
   // Initialize therapist management
-  renderTherapistLists();
+  await refreshAdminPanel();
 }
 
 if (isAdminLoggedIn()) {
