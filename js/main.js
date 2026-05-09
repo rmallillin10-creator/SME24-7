@@ -872,8 +872,19 @@ function setupBookingForm() {
   const taxiFare = document.getElementById("taxiFare");
   const taxiFarePerTherapist = document.getElementById("taxiFarePerTherapist");
   const locationInput = document.getElementById("location");
+  const preferredDateInput = document.getElementById("preferredDate");
+  const preferredTimeInput = document.getElementById("preferredTime");
   const femaleCount = document.getElementById("femaleTherapistCount");
   const maleCount = document.getElementById("maleTherapistCount");
+
+  if (preferredDateInput) {
+    preferredDateInput.min = new Date().toISOString().slice(0, 10);
+    preferredDateInput.setAttribute("autocomplete", "off");
+  }
+  if (preferredTimeInput) {
+    preferredTimeInput.step = 1800;
+    preferredTimeInput.setAttribute("autocomplete", "off");
+  }
 
   const updateTaxiFare = () => {
     if (!taxiFare) return;
