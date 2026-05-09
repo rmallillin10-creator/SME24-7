@@ -520,11 +520,11 @@ function setupReviewsSection() {
 
     try {
       await saveReviewToGoogleSheets(review);
-      if (status) status.textContent = "Review saved.";
+      if (status) status.textContent = "Review saved. Please click the Google review button next to add an official Google review.";
       form.reset();
     } catch (error) {
       console.warn("Could not save review to Google Sheets:", error);
-      if (status) status.textContent = "Review shown here. Google Sheets is not configured yet.";
+      if (status) status.textContent = "Review shown here. Google Sheets is not configured yet. You can still leave an official Google review using the button above.";
     }
   });
 }
