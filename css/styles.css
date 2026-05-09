@@ -706,10 +706,19 @@ textarea {
 
 input[type="date"],
 input[type="time"] {
-  background: #1b1b1b;
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: var(--text);
   color-scheme: dark;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="date"]:focus,
+input[type="time"]:focus {
+  outline: none;
+  border-color: rgba(255, 153, 51, 0.95);
+  box-shadow: 0 0 16px rgba(255, 153, 51, 0.25);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator,
