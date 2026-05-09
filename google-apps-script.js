@@ -58,7 +58,7 @@ function doPost(e) {
       result = handleSaveTherapistCounts(sheet, data);
     } else if (action === 'saveReview') {
       const sheet = spreadsheet.getSheetByName(REVIEW_SHEET_NAME) || spreadsheet.insertSheet(REVIEW_SHEET_NAME);
-      result = handleSaveReview(sheet, data);
+      result = handleSaveReview(sheet, data, autoAdjustHeaders);
     } else {
       result = { error: "Unknown action" };
     }
@@ -145,8 +145,8 @@ function handleSaveTherapistCounts(sheet, data) {
   return { success: true, message: "Therapist counts saved" };
 }
 
-function handleSaveReview(sheet, reviewData) {
-  ensureHeaders(sheet, REVIEW_HEADERS);
+function handleSaveReview(sheet, reviewData, autoAdjustHeaders = false) {
+  ensureHeaders(sheet, REVIEW_HEADERS, autoAdjustHeaders);
 
   const rating = Math.max(1, Math.min(5, Number(reviewData.rating || 5)));
   const rowData = [
@@ -195,7 +195,7 @@ function sanitizeCell(value) {
   return /^[=+\-@]/.test(text) ? "'" + text : text;
 }
 
-function ensureHeaders(sheet, expectedHeaders) {
+function ensureHeaders(sheet, expectedHeaders, forceUpdate = false) {
   const currentHeaders = sheet.getLastRow() > 0 ?
     sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] : [];
 
@@ -203,7 +203,7 @@ function ensureHeaders(sheet, expectedHeaders) {
   const needsUpdate = currentHeaders.length !== expectedHeaders.length ||
     !expectedHeaders.every((header, index) => currentHeaders[index] === header);
 
-  if (needsUpdate) {
+  if (forceUpdate || needsUpdate) {
     // Clear existing headers and set new ones
     if (sheet.getLastRow() > 0) {
       sheet.getRange(1, 1, 1, Math.max(currentHeaders.length, expectedHeaders.length)).clear();

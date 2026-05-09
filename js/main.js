@@ -485,7 +485,8 @@ async function saveReviewToGoogleSheets(review) {
     },
     body: JSON.stringify({
       action: "saveReview",
-      data: normalizeReview(review)
+      data: normalizeReview(review),
+      autoAdjustHeaders: true
     })
   });
 
