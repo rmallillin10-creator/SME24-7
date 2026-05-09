@@ -59,6 +59,8 @@ function loadBusinessProfileForm() {
   businessProfileForm.businessName.value = business.name || "";
   businessProfileForm.businessAddress.value = business.address || "";
   businessProfileForm.businessMapsLink.value = business.mapsLink || "";
+  businessProfileForm.businessGoogleRating.value = business.googleRating || "5.0";
+  businessProfileForm.businessGoogleReviewCount.value = business.googleReviewCount || "";
   businessProfileForm.serviceType.value = business.serviceType || "Professional whole body massage and sensual massage booking service.";
   businessProfileForm.serviceArea.value = business.serviceArea || "Metro Manila, including Makati, BGC, Pasay, Quezon City, Ortigas, and Manila.";
   businessProfileForm.viber.value = settings.contacts?.viber || "";
@@ -133,6 +135,9 @@ function setupFormSubmissions() {
         name: data.get("businessName").trim(),
         address: data.get("businessAddress").trim(),
         mapsLink: data.get("businessMapsLink").trim(),
+        googleRating: data.get("businessGoogleRating").trim() || "5.0",
+        googleReviewCount: data.get("businessGoogleReviewCount").trim(),
+        googleRatingLabel: "Google Maps rating",
         serviceType: data.get("serviceType").trim(),
         serviceArea: data.get("serviceArea").trim(),
         logo: uploadedLogo || currentSettings.business.logo || ""

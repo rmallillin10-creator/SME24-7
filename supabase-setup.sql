@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS site_settings (
   business_logo TEXT,
   business_service_type TEXT,
   business_service_area TEXT,
+  business_google_rating TEXT DEFAULT '5.0',
+  business_google_review_count TEXT,
+  business_google_rating_label TEXT DEFAULT 'Google Maps rating',
   taxi_fare INTEGER DEFAULT 0,
   taxi_fare_currency TEXT DEFAULT 'PHP',
   taxi_fare_notes TEXT,
@@ -105,6 +108,9 @@ ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_service_type TEXT;
 ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_service_area TEXT;
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_google_rating TEXT DEFAULT '5.0';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_google_review_count TEXT;
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_google_rating_label TEXT DEFAULT 'Google Maps rating';
 ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS google_sheets_web_app_url TEXT;
 ALTER TABLE therapists ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';
 ALTER TABLE therapists ADD COLUMN IF NOT EXISTS booking_count INTEGER DEFAULT 0;

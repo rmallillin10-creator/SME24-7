@@ -12,8 +12,11 @@ const DEFAULT_SITE_SETTINGS = {
   business: {
     name: "Sensual Massage Elite SME 24/7 Hotel and Condo Service Male and Female Therapist",
     address: "Metro Manila, Philippines",
-    mapsLink: "https://www.google.com/maps/search/?api=1&query=Metro%20Manila%2C%20Philippines",
-    logo: ""
+    mapsLink: "https://maps.app.goo.gl/UfyMsXmTVrH8Fipd7",
+    logo: "",
+    googleRating: "5.0",
+    googleReviewCount: "",
+    googleRatingLabel: "Google Maps rating"
   },
   taxiFare: 0,
   googleSheetsWebAppUrl: "",
@@ -93,7 +96,10 @@ async function loadSiteSettingsFromSupabase() {
         mapsLink: supabaseSettings.business_maps_link || DEFAULT_SITE_SETTINGS.business.mapsLink,
         logo: supabaseSettings.business_logo || "",
         serviceType: supabaseSettings.business_service_type || "",
-        serviceArea: supabaseSettings.business_service_area || ""
+        serviceArea: supabaseSettings.business_service_area || "",
+        googleRating: supabaseSettings.business_google_rating || "5.0",
+        googleReviewCount: supabaseSettings.business_google_review_count || "",
+        googleRatingLabel: supabaseSettings.business_google_rating_label || "Google Maps rating"
       },
       taxiFare: supabaseSettings.taxi_fare || 0,
       taxiFareCurrency: supabaseSettings.taxi_fare_currency || "PHP",
@@ -159,6 +165,7 @@ function refreshCurrentPageWidgets() {
   if (document.getElementById("companyContacts")) {
     renderCompanyContacts("companyContacts");
   }
+  document.querySelectorAll("[data-business-map-rating]").forEach((target) => renderBusinessMapRating(target));
   if (document.getElementById("bookingForm")) {
     populateBookingSelect();
     updateBookingEstimate();
@@ -179,6 +186,9 @@ function applyBusinessProfile() {
   });
   document.querySelectorAll("[data-business-map]").forEach((target) => {
     target.href = business.mapsLink || "#";
+  });
+  document.querySelectorAll("[data-business-google-rating]").forEach((target) => {
+    target.textContent = formatGoogleRating(business);
   });
   document.querySelectorAll(".brand-logo, [data-business-logo]").forEach((target) => {
     target.src = logo;
@@ -300,6 +310,44 @@ function therapistCard(therapist, options = {}) {
       (hasPhotoGallery ? '<button class="btn-secondary" type="button" onclick="viewTherapistPhotos(event, \'' + therapist.id + '\')">View Photos</button>' : '') +
       '    </div>' +
       '  </div>';
+}
+
+function formatGoogleRating(business) {
+  const rating = business.googleRating || "5.0";
+  const reviewCount = business.googleReviewCount ? ` (${business.googleReviewCount})` : "";
+  return `${rating} / 5.0${reviewCount}`;
+}
+
+function googleMapsEmbedUrl(business) {
+  const query = [business.name, business.address].filter(Boolean).join(" ");
+  return `https://www.google.com/maps?q=${encodeURIComponent(query || "Metro Manila Philippines")}&output=embed`;
+}
+
+function renderBusinessMapRating(target) {
+  if (!target) return;
+  const business = getSiteSettings().business || DEFAULT_SITE_SETTINGS.business;
+  const mapsLink = business.mapsLink || DEFAULT_SITE_SETTINGS.business.mapsLink;
+  const ratingLabel = business.googleRatingLabel || "Google Maps rating";
+  target.innerHTML = `
+    <div class="map-rating-panel">
+      <div class="map-rating-summary">
+        <div>
+          <span class="eyebrow">${ratingLabel}</span>
+          <h2>${business.name || DEFAULT_SITE_SETTINGS.business.name}</h2>
+          <p>${business.address || DEFAULT_SITE_SETTINGS.business.address}</p>
+        </div>
+        <div class="rating-score" aria-label="${formatGoogleRating(business)}">
+          <strong>${business.googleRating || "5.0"}</strong>
+          <span class="rating-stars" aria-hidden="true">★★★★★</span>
+          <small>${business.googleReviewCount || "Google reviews"}</small>
+        </div>
+      </div>
+      <div class="map-frame">
+        <iframe title="${business.name || "Business"} map" src="${googleMapsEmbedUrl(business)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+      <a class="button secondary" href="${mapsLink}" target="_blank" rel="noopener">Open Google Maps</a>
+    </div>
+  `;
 }
 
 function setupDirectory(targetId, gender) {
