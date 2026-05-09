@@ -1,6 +1,7 @@
 // Supabase REST integration. This avoids CDN tracking/ad-blocker issues on GitHub Pages.
 const SUPABASE_URL = "https://edalozmblhdautywwouz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_d5yVOo4GClzQqz1ulKka7A_GIEgDufS";
+const SUPABASE_THERAPIST_IMAGE_BUCKET = "therapist-images";
 
 function supabaseHeaders(extra = {}) {
   return {
@@ -25,6 +26,59 @@ async function supabaseRequest(path, options = {}) {
   if (response.status === 204) return null;
   const text = await response.text();
   return text ? JSON.parse(text) : null;
+}
+
+function supabaseStorageHeaders(extra = {}) {
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    ...extra
+  };
+}
+
+function sanitizeStoragePathPart(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "file";
+}
+
+function storagePublicUrl(bucket, path) {
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+async function uploadFileToSupabaseStorage(file, path, bucket = SUPABASE_THERAPIST_IMAGE_BUCKET) {
+  if (!file) return "";
+
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
+    method: "POST",
+    headers: supabaseStorageHeaders({
+      "Content-Type": file.type || "application/octet-stream",
+      "Cache-Control": "3600",
+      "x-upsert": "true"
+    }),
+    body: file
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Supabase Storage ${response.status}: ${message || response.statusText}`);
+  }
+
+  return storagePublicUrl(bucket, path);
+}
+
+async function uploadTherapistImagesToSupabase(therapistId, files) {
+  const selectedFiles = Array.from(files || []).filter(Boolean).slice(0, 11);
+  const folder = sanitizeStoragePathPart(therapistId || Date.now());
+
+  return Promise.all(selectedFiles.map((file, index) => {
+    const extension = sanitizeStoragePathPart((file.name || "").split(".").pop() || "jpg");
+    const baseName = sanitizeStoragePathPart((file.name || `image-${index + 1}`).replace(/\.[^.]+$/, ""));
+    const path = `${folder}/${Date.now()}-${index + 1}-${baseName}.${extension}`;
+    return uploadFileToSupabaseStorage(file, path);
+  }));
 }
 
 async function initSupabase() {

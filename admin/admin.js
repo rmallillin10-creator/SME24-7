@@ -100,6 +100,57 @@ function readImageFiles(files, limit = 10) {
   return Promise.all(Array.from(files || []).slice(0, limit).map(readLogoFile));
 }
 
+function getSelectedTherapistImageFiles() {
+  return [
+    therapistProfilePictureInput?.files?.[0],
+    ...Array.from(therapistSlidesInput?.files || []).slice(0, 10)
+  ].filter(Boolean);
+}
+
+function hasEmbeddedImage(value) {
+  return typeof value === "string" && value.startsWith("data:image/");
+}
+
+function stripEmbeddedTherapistImages(therapist) {
+  const images = [therapist.image, ...(therapist.images || []), ...(therapist.slides || [])]
+    .filter((image) => image && !hasEmbeddedImage(image));
+  return {
+    ...therapist,
+    image: images[0] || "images/therapists/default.svg",
+    images,
+    slides: images.slice(1)
+  };
+}
+
+function saveLocalTherapistDraft(therapist) {
+  const cleanTherapist = stripEmbeddedTherapistImages(therapist);
+  const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+  const nextDrafts = drafts.filter((draft) => draft.id !== cleanTherapist.id);
+  nextDrafts.push(cleanTherapist);
+  localStorage.setItem("eliteTherapistDrafts", JSON.stringify(nextDrafts));
+}
+
+function compactLocalTherapistDrafts() {
+  try {
+    const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
+    if (!drafts.length) return;
+    const compacted = drafts.map(stripEmbeddedTherapistImages);
+    localStorage.setItem("eliteTherapistDrafts", JSON.stringify(compacted));
+  } catch (error) {
+    localStorage.removeItem("eliteTherapistDrafts");
+    console.warn("Removed oversized therapist drafts from browser storage:", error);
+  }
+}
+
+async function buildTherapistImageUrls(therapistId) {
+  const files = getSelectedTherapistImageFiles();
+  if (!files.length) return [];
+  if (typeof uploadTherapistImagesToSupabase !== "function") {
+    throw new Error("Supabase image upload is not configured");
+  }
+  return uploadTherapistImagesToSupabase(therapistId, files);
+}
+
 function setupImagePreviews() {
   // Business logo preview
   businessLogoInput?.addEventListener("change", async () => {
@@ -243,14 +294,23 @@ therapistSlidesInput?.addEventListener("change", () => {
 therapistDraftForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(therapistDraftForm);
-  const profilePicture = await readLogoFile(therapistProfilePictureInput.files?.[0]);
-  const slides = await readImageFiles(therapistSlidesInput.files, 10);
   const selectedGender = data.get("therapistGender");
   const rateValue = Number(data.get("therapistRate")) || getDefaultTherapistRate(selectedGender);
+  const therapistId = Date.now().toString();
+
+  therapistDraftStatus.textContent = "Uploading therapist photos to Supabase...";
+  let uploadedImages = [];
+  try {
+    uploadedImages = await buildTherapistImageUrls(therapistId);
+  } catch (error) {
+    therapistDraftStatus.textContent = "⚠️ Photo upload failed: " + error.message;
+    console.error("Supabase image upload failed:", error);
+    return;
+  }
   
   // Create therapist object matching public data structure
   const therapist = {
-    id: Date.now().toString(),
+    id: therapistId,
     name: data.get("therapistName").trim(),
     gender: selectedGender,
     location: data.get("therapistLocation").trim(),
@@ -259,45 +319,15 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
     bio: data.get("therapistBio").trim(),
     availability: data.get("therapistAvailability").trim(),
     mapUrl: data.get("therapistMapUrl").trim(),
-    image: profilePicture || slides[0] || "images/therapists/default.svg",
-    slides: slides,
-    images: [profilePicture, ...slides].filter(Boolean),
+    image: uploadedImages[0] || "images/therapists/default.svg",
+    slides: uploadedImages.slice(1),
+    images: uploadedImages,
     pricing: { 1: rateValue },
     featured: false,
     createdAt: new Date().toISOString()
   };
   
-  // Save to localStorage drafts with quota handling
-  try {
-    const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
-    localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapist]));
-  } catch (quotaError) {
-    if (quotaError.name === 'QuotaExceededError') {
-      // Storage quota exceeded - try to save without slides/images
-      console.warn("Storage quota exceeded, saving therapist without images...");
-      try {
-        const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
-        const therapistWithoutSlides = {
-          ...therapist,
-          image: "images/therapists/default.svg",
-          slides: []
-        };
-        localStorage.setItem("eliteTherapistDrafts", JSON.stringify([...drafts, therapistWithoutSlides]));
-        therapistDraftStatus.textContent = "✅ Therapist saved (without images due to storage limit). You can add photos later.";
-      } catch (retryError) {
-        // If still failing, inform user
-        therapistDraftStatus.textContent = "⚠️ Storage full. Please clear browser data or remove old therapists from the admin panel.";
-        console.error("Storage error after retry:", retryError);
-        return;
-      }
-    } else {
-      therapistDraftStatus.textContent = "⚠️ Error saving therapist: " + quotaError.message;
-      console.error("Storage error:", quotaError);
-      return;
-    }
-  }
-  
-  // Try to save to Supabase if available, but don't fail if it's not
+  therapistDraftStatus.textContent = "Saving therapist to Supabase...";
   let supabaseResult = { error: "Supabase not available" };
   if (typeof saveTherapistToSupabase === 'function') {
     try {
@@ -309,9 +339,16 @@ therapistDraftForm?.addEventListener("submit", async (event) => {
   }
   
   if (supabaseResult.error) {
-    therapistDraftStatus.textContent = "✅ Therapist saved locally (Supabase sync failed)";
+    therapistDraftStatus.textContent = "⚠️ Supabase therapist save failed: " + supabaseResult.error;
+    return;
   } else {
     therapistDraftStatus.textContent = "✅ Therapist saved successfully!";
+    try {
+      saveLocalTherapistDraft(therapist);
+    } catch (storageError) {
+      compactLocalTherapistDrafts();
+      console.warn("Therapist saved to Supabase, but local cache could not be updated:", storageError);
+    }
     // Add to global therapist data for immediate display and public pages
     if (typeof therapistData !== 'undefined') {
       const existingIndex = therapistData.findIndex(t => t.id === therapist.id);
@@ -531,22 +568,20 @@ function editTherapist(therapistId) {
   let selectedImageIndex = 0;
   
   if (imageInput && imageGallery) {
-    imageInput.addEventListener('change', (e) => {
+    imageInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
-      
-      // Add new images (up to 10 total)
-      const newImages = files.slice(0, 10).map(file => {
-        const reader = new FileReader();
-        return new Promise(resolve => {
-          reader.onload = (e) => resolve(e.target.result);
-          reader.readAsDataURL(file);
-        });
-      });
-      
-      Promise.all(newImages).then(imageDataUrls => {
-        currentImages = [...currentImages, ...imageDataUrls];
+      if (!files.length) return;
+
+      try {
+        const uploadedUrls = typeof uploadTherapistImagesToSupabase === "function"
+          ? await uploadTherapistImagesToSupabase(therapist.id, files.slice(0, 10))
+          : [];
+        currentImages = [...currentImages, ...uploadedUrls];
         updateImageGallery(currentImages);
-      });
+      } catch (error) {
+        console.error("Supabase image upload failed:", error);
+        alert("Photo upload failed: " + error.message);
+      }
     });
     
     // Handle image gallery clicks
@@ -602,10 +637,12 @@ function editTherapist(therapistId) {
       slides: currentImages.filter((image) => image !== currentImages[selectedImageIndex])
     };
     
-    // Update in localStorage
-    const drafts = JSON.parse(localStorage.getItem("eliteTherapistDrafts") || "[]");
-    const updatedDrafts = drafts.map(d => d.id === therapistId ? updatedTherapist : d);
-    localStorage.setItem("eliteTherapistDrafts", JSON.stringify(updatedDrafts));
+    try {
+      saveLocalTherapistDraft(updatedTherapist);
+    } catch (storageError) {
+      compactLocalTherapistDrafts();
+      console.warn("Could not update local therapist cache:", storageError);
+    }
     
     // Update global therapistData
     if (typeof therapistData !== 'undefined') {
@@ -666,6 +703,7 @@ function deleteTherapist(therapistId) {
 async function initializeAdminPage() {
   // Initialize admin tabs first
   setupAdminTabs();
+  compactLocalTherapistDrafts();
   
   if (typeof loadSharedDatabaseData === "function") {
     await loadSharedDatabaseData();

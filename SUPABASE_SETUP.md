@@ -9,7 +9,7 @@
 5. Paste it into the SQL editor
 6. Click **Run**
 
-This will create the necessary tables with RLS policies.
+This will create the necessary tables, the public `therapist-images` Storage bucket, and the RLS policies needed for therapist photo uploads.
 
 ## Step 2: Create Admin Users
 
@@ -47,7 +47,8 @@ Replace `your-admin-email@example.com` with your actual email.
 ## How It Works
 
 - **Business Settings & Services**: Saved to Supabase `site_settings` table
-- **Therapist Profiles**: Can be saved to `therapists` table
+- **Therapist Profiles**: Saved to the `therapists` table
+- **Therapist Pictures**: Uploaded to the public `therapist-images` Supabase Storage bucket, with only public image URLs saved in the therapist row and browser cache
 - **Therapist Drafts**: Uploaded drafts go to `therapist_drafts` table
 - **Bookings**: Still saved to Google Sheets (as per your requirement)
 - **Admin Auth**: Uses Supabase Auth instead of hardcoded credentials
@@ -59,7 +60,7 @@ If Supabase is unavailable, the app will automatically fall back to localStorage
 ## Next Steps
 
 1. Migrate existing therapist data to the `therapists` table
-2. Set up Supabase Storage for profile pictures and slide images
+2. Confirm the `therapist-images` Storage bucket exists after running `supabase-setup.sql`
 3. Connect the booking Google Sheets integration
 4. Consider enabling additional auth providers (Google, GitHub, etc.)
 
@@ -68,3 +69,4 @@ If Supabase is unavailable, the app will automatically fall back to localStorage
 - **Login not working**: Make sure your email is added to `admin_users` table
 - **Settings not saving**: Check browser console for Supabase errors
 - **Therapists not loading**: Verify `therapists` table has data or hardcoded data is available
+- **Photo upload failing**: Run `supabase-setup.sql` again and confirm the `therapist-images` bucket exists in Supabase Storage

@@ -99,6 +99,11 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- 6. Public therapist image bucket
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('therapist-images', 'therapist-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
 -- Enable RLS
 ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE therapists ENABLE ROW LEVEL SECURITY;
@@ -127,6 +132,10 @@ DROP POLICY IF EXISTS "Authenticated admins can read bookings" ON bookings;
 DROP POLICY IF EXISTS "Authenticated admins can read drafts" ON therapist_drafts;
 DROP POLICY IF EXISTS "Authenticated admins can insert drafts" ON therapist_drafts;
 DROP POLICY IF EXISTS "Authenticated admins can delete drafts" ON therapist_drafts;
+DROP POLICY IF EXISTS "Public can read therapist images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can upload therapist images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can update therapist images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can delete therapist images" ON storage.objects;
 
 -- RLS Policies for Public Therapist Directory
 CREATE POLICY "Public can read therapists" ON therapists
@@ -152,6 +161,18 @@ CREATE POLICY "Public can delete therapists" ON therapists
 
 CREATE POLICY "Public can insert bookings" ON bookings
   FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Public can read therapist images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'therapist-images');
+
+CREATE POLICY "Public can upload therapist images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'therapist-images');
+
+CREATE POLICY "Public can update therapist images" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'therapist-images');
+
+CREATE POLICY "Public can delete therapist images" ON storage.objects
+  FOR DELETE USING (bucket_id = 'therapist-images');
 
 CREATE POLICY "Authenticated admins can read bookings" ON bookings
   FOR SELECT USING (
