@@ -192,7 +192,6 @@ function applyBusinessProfile() {
   const settings = getSiteSettings();
   const business = settings.business || DEFAULT_SITE_SETTINGS.business;
   const logo = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/elite%20logo.png" : "logo/elite%20logo.png");
-  const favicon = business.logo || (window.location.pathname.toLowerCase().includes("/admin/") ? "../logo/elite%20logo.png" : "logo/elite%20logo.png");
 
   document.querySelectorAll("[data-business-name]").forEach((target) => {
     target.textContent = business.name;
@@ -209,8 +208,14 @@ function applyBusinessProfile() {
   document.querySelectorAll(".brand-logo, [data-business-logo]").forEach((target) => {
     target.src = logo;
   });
-  document.querySelectorAll("link[rel='icon'], link[rel='alternate icon'], link[rel='apple-touch-icon']").forEach((target) => {
-    target.href = favicon;
+  document.querySelectorAll("link[rel='icon'], link[rel='alternate icon'], link[rel='shortcut icon']").forEach((target) => {
+    target.href = target.getAttribute("sizes") === "96x96" ? "/logo/favicon-96x96.png" : "/logo/favicon-48x48.png";
+  });
+  document.querySelectorAll("link[rel='shortcut icon']").forEach((target) => {
+    target.href = "/favicon.ico";
+  });
+  document.querySelectorAll("link[rel='apple-touch-icon']").forEach((target) => {
+    target.href = "/logo/apple-touch-icon.png";
   });
 }
 
