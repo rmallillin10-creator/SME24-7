@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://rmallillin10-creator.github.io/SME24-7/sitemap.xml
+Sitemap: https://sme247manila.com/sitemap.xml
