@@ -13,10 +13,20 @@ function supabaseHeaders(extra = {}) {
 }
 
 async function supabaseRequest(path, options = {}) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: supabaseHeaders(options.headers || {})
-  });
+  const { timeout = 6000, ...requestOptions } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let response;
+
+  try {
+    response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...requestOptions,
+      headers: supabaseHeaders(requestOptions.headers || {}),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const message = await response.text();
@@ -222,13 +232,15 @@ async function fetchTherapistsFromStaticCache() {
 }
 
 async function fetchTherapistsFromSupabase() {
+  const cachedTherapists = await fetchTherapistsFromStaticCache();
+
   try {
     const rows = await supabaseRequest("therapists?select=*&order=created_at.asc");
     if (rows?.length) return rows.map(therapistFromSupabaseRow);
-    return fetchTherapistsFromStaticCache();
+    return cachedTherapists;
   } catch (e) {
     console.warn("Could not fetch therapists from Supabase:", e);
-    return fetchTherapistsFromStaticCache();
+    return cachedTherapists;
   }
 }
 

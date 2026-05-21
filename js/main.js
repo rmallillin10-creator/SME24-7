@@ -136,9 +136,7 @@ async function loadSiteSettingsFromSupabase() {
   return getSiteSettings();
 }
 
-async function loadTherapistsFromSupabase() {
-  if (typeof fetchTherapistsFromSupabase !== "function") return [];
-  const therapists = await fetchTherapistsFromSupabase();
+function mergeTherapistsIntoDirectory(therapists) {
   window.supabaseTherapists = therapists;
   if (therapists.length) {
     if (typeof therapistData !== "undefined") {
@@ -152,14 +150,36 @@ async function loadTherapistsFromSupabase() {
       });
     }
   }
+}
+
+async function loadTherapistsFromSupabase() {
+  if (typeof fetchTherapistsFromSupabase !== "function") return [];
+
+  if (typeof fetchTherapistsFromStaticCache === "function") {
+    const cachedTherapists = await fetchTherapistsFromStaticCache();
+    if (cachedTherapists.length) {
+      mergeTherapistsIntoDirectory(cachedTherapists);
+      fetchTherapistsFromSupabase().then((therapists) => {
+        mergeTherapistsIntoDirectory(therapists);
+        refreshCurrentPageWidgets();
+      });
+      return cachedTherapists;
+    }
+  }
+
+  const therapists = await fetchTherapistsFromSupabase();
+  mergeTherapistsIntoDirectory(therapists);
   return therapists;
 }
 
 async function loadSharedDatabaseData() {
-  await Promise.all([
-    typeof fetchSiteSettingsFromSupabase === "function" ? loadSiteSettingsFromSupabase() : Promise.resolve(getSiteSettings()),
-    loadTherapistsFromSupabase()
-  ]);
+  const settingsJob = typeof fetchSiteSettingsFromSupabase === "function"
+    ? loadSiteSettingsFromSupabase()
+    : Promise.resolve(getSiteSettings());
+
+  await loadTherapistsFromSupabase();
+  refreshCurrentPageWidgets();
+  await Promise.allSettled([settingsJob]);
 }
 
 function refreshCurrentPageWidgets() {
