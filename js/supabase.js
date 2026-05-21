@@ -209,7 +209,9 @@ async function saveSiteSettingsToSupabase(settings) {
 
 async function fetchTherapistsFromStaticCache() {
   try {
-    const response = await fetch("/data/therapists.json", { cache: "no-store" });
+    const isAdminPage = window.location.pathname.toLowerCase().includes("/admin/");
+    const cacheUrl = isAdminPage ? "../data/therapists.json" : "data/therapists.json";
+    const response = await fetch(cacheUrl, { cache: "no-store" });
     if (!response.ok) return [];
     const rows = await response.json();
     return (rows || []).map(therapistFromSupabaseRow);
@@ -222,7 +224,8 @@ async function fetchTherapistsFromStaticCache() {
 async function fetchTherapistsFromSupabase() {
   try {
     const rows = await supabaseRequest("therapists?select=*&order=created_at.asc");
-    return (rows || []).map(therapistFromSupabaseRow);
+    if (rows?.length) return rows.map(therapistFromSupabaseRow);
+    return fetchTherapistsFromStaticCache();
   } catch (e) {
     console.warn("Could not fetch therapists from Supabase:", e);
     return fetchTherapistsFromStaticCache();
