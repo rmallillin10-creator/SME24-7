@@ -207,13 +207,25 @@ async function saveSiteSettingsToSupabase(settings) {
   }
 }
 
+async function fetchTherapistsFromStaticCache() {
+  try {
+    const response = await fetch("/data/therapists.json", { cache: "no-store" });
+    if (!response.ok) return [];
+    const rows = await response.json();
+    return (rows || []).map(therapistFromSupabaseRow);
+  } catch (e) {
+    console.warn("Could not fetch therapist cache:", e);
+    return [];
+  }
+}
+
 async function fetchTherapistsFromSupabase() {
   try {
     const rows = await supabaseRequest("therapists?select=*&order=created_at.asc");
     return (rows || []).map(therapistFromSupabaseRow);
   } catch (e) {
     console.warn("Could not fetch therapists from Supabase:", e);
-    return [];
+    return fetchTherapistsFromStaticCache();
   }
 }
 

@@ -1652,17 +1652,16 @@ if (window.location.pathname.toLowerCase().endsWith("contact.html")) {
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("Initializing shared data system");
-    
-    // Load local settings if available
-    const localSettings = localStorage.getItem("eliteSiteSettings");
-    if (localSettings) {
-      try {
+
+    try {
+      const localSettings = localStorage.getItem("eliteSiteSettings");
+      if (localSettings) {
         const settings = JSON.parse(localSettings);
         window.siteSettings = settings;
         console.log("Loaded local site settings");
-      } catch (e) {
-        console.warn("Failed to load local settings:", e);
       }
+    } catch (e) {
+      console.warn("Could not load local settings:", e);
     }
 
     await loadSharedDatabaseData();
